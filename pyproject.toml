@@ -1,0 +1,68 @@
+[project]
+name = "crispio"
+version = "0.0.1"
+authors = [
+  { name="Eachan Johnson", email="eachan.johnson@crick.ac.uk" },
+]
+description = "Designing CRISPR-Cas guide RNAs in bacteria."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+keywords = ["biology", "CRISPR", "science", "bacteria"]
+
+classifiers = [  
+  
+  "Development Status :: 3 - Alpha",
+
+  # Indicate who your project is intended for
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+
+  "License :: OSI Approved :: MIT License",
+
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3 :: Only",
+]
+
+dependencies = [ 
+  "bioino>=0.0.2",
+  "carabiner-tools",
+  "pyyaml",
+  "nemony",
+  "numpy",
+  "pandas",
+  "streq",
+  "tqdm"
+]
+
+[project.optional-dependencies]
+fit = [
+  "carabiner-tools[pd,mpl]",
+  "jax",
+  "optax",
+  "scipy",
+  "matplotlib",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/scbirlab/crispio"
+"Bug Tracker" = "https://github.com/scbirlab/crispio"
+
+[project.scripts] 
+crispio = "crispio.cli:main"
+guidefitness = "crispio.fitness:main"
+guideplot = "crispio.plot:main"
+
+[tool.setuptools]
+# If there are data files included in your packages that need to be
+# installed, specify them here.
+package-data = {"crispio" = ["*.yml"]}
+
+[build-system]
+# These are the assumed default build requirements from pip:
+# https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
