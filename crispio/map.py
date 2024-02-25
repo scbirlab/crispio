@@ -245,7 +245,7 @@ class GuideLibrary:
         --------
         >>> genome = "TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC"
         >>> gl = GuideLibrary.from_generating(genome=genome)
-        >>> for gff in gl.as_gff(gff_defaults=dict(seqid='my_seq', source='here', feature='protospacer')):
+        >>> for gff in gl.as_gff(gff_defaults=dict(seqid='my_seq', source='here', feature='protospacer')):  # doctest: +NORMALIZE_WHITESPACE
         ...     print(gff)
         ... 
         my_seq  here    protospacer     15      34      .       +       .       ID=sgr-c68ad8a1;Name=34-dreary_trident;guide_context_down=AAAAAAAAAACCCCCCCCCC;guide_context_up=;guide_length=20;guide_re_sites=;guide_sequence=AAAAAATGATCGATCGATCG;guide_sequence_hash=ab91540e;mnemonic=dreary_trident;pam_end=37;pam_replichore=L;pam_search=NGG;pam_sequence=NGG;pam_start=34;source_name=34-dreary_trident
