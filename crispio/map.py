@@ -245,8 +245,6 @@ class GuideLibrary:
         --------
         >>> genome = "TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC"
         >>> gl = GuideLibrary.from_generating(genome=genome)
-        1it [00:00, 2223.92it/s, at_site=34, direction=forward, guides_created=1, pam_sites_found=1]
-        3it [00:00, 6397.01it/s, at_site=53, direction=reverse, guides_created=4, pam_sites_found=4]
         >>> for gff in gl.as_gff(gff_defaults=dict(seqid='my_seq', source='here', feature='protospacer')):
         ...     print(gff)
         ... 
@@ -363,9 +361,6 @@ class GuideLibrary:
         >>> genome = "TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC"
         >>> guide_seq = "ATGATCGATCGATCG"
         >>> gl = GuideLibrary.from_mapping(guide_seq=guide_seq, genome=genome) 
-        100%|████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 2263.52it/s, current=ATGATCGATCGATCGNGG, not_found=0]
-        Not found: 0 guides:
-        <BLANKLINE>
         >>> gl.genome
         'TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC'
         >>> len(gl.guide_matches)
@@ -478,8 +473,6 @@ class GuideLibrary:
         --------
         >>> genome = "TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC"
         >>> gl = GuideLibrary.from_generating(genome=genome) 
-        1it [00:00, 2223.92it/s, at_site=34, direction=forward, guides_created=1, pam_sites_found=1]
-        3it [00:00, 6397.01it/s, at_site=53, direction=reverse, guides_created=4, pam_sites_found=4]
         >>> gl.genome
         'TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC'
         >>> len(gl.guide_matches)
