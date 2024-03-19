@@ -1,6 +1,6 @@
 """Classes for representing guide RNA libraries."""
 
-from typing import Dict, Iterable, Optional, Union
+from typing import Dict, Iterable, Optional, Tuple, Union
 
 from dataclasses import asdict, dataclass, field
 import math
@@ -35,33 +35,48 @@ class GuideMatch:
     length : int
         Length of guide.
 
+    Examples
+    --------
+    >>> GuideMatch(pam_search='NGG', guide_seq='ATCGATCG', pam_seq='CGG', pam_start=10, reverse=False)
+    GuideMatch(pam_search='NGG', guide_seq='ATCGATCG', pam_seq='CGG', pam_start=10, reverse=False, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=2, guide_end=10)
+    >>> GuideMatch(pam_search='NGG', guide_seq='ATCGATCG', pam_seq='CCG', pam_start=10, reverse=True)
+    GuideMatch(pam_search='NGG', guide_seq='CGATCGAT', pam_seq='CGG', pam_start=10, reverse=True, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=13, guide_end=21)
+    
     """
 
     pam_search: str
     guide_seq: str
     pam_seq: str 
     pam_start: int
-    pam_end: int
     reverse: bool
-    guide_context_up: str = field(init=False, default=None)
-    guide_context_down: str = field(init=False, default=None)
+    guide_context_up: Optional[str] = field(init=False, default=None)
+    guide_context_down: Optional[str] = field(init=False, default=None)
+    pam_end: int = field(init=False)
     length: int = field(init=False)
     guide_start: int = field(init=False)
     guide_end: int = field(init=False)
 
-
     def __post_init__(self):
 
         self.length = len(self.guide_seq)
+        self.pam_end = self.pam_start + len(self.pam_seq)
 
         if not self.reverse:
             self.guide_start = self.pam_start - self.length 
             self.guide_end = self.pam_start 
-            # guide_seq = guide_seq
         else:
             self.guide_start = self.pam_end
             self.guide_end = self.pam_end + self.length
+            self.pam_seq = reverse_complement(self.pam_seq)
             self.guide_seq = reverse_complement(self.guide_seq)
+
+    def __len__(self):
+
+        return len(self.guide_seq)
+
+    def __str__(self):
+
+        return self.guide_seq
         
     def as_dict(self):
 
@@ -91,15 +106,32 @@ class GuideMatchCollection:
     pam_search: str
     matches: Iterable[GuideMatch]
     guide_name: Optional[str] = field(default=None)
+    _len: Optional[int] = field(default=None)
+
+    def __iter__(self):
+
+        for match in self.matches:
+
+            yield match
+
+    def __len__(self):
+
+        try:
+            return len(self.matches)
+        except TypeError:
+            if self._len is not None:
+                return self._len
+            else:            
+                self.matches = list(self.matches)
+                return len(self.matches)            
 
     @staticmethod
     def _from_search(guide_seq: str, 
                      genome: str,
-                     pam_search: str = "NGG") -> Iterable[Dict[str, GuideMatch]]:
+                     pam_search: str = "NGG") -> Iterable[Tuple[int, Dict[str, GuideMatch]]]:
     
         if (guide_seq not in genome and 
             reverse_complement(guide_seq) not in genome):
-
             raise ValueError(f'{guide_seq} not in genome')
 
         pam_len = len(pam_search)
@@ -111,26 +143,34 @@ class GuideMatchCollection:
             this_guide_plus_pam = (reverse_complement(guide_plus_pam) if reverse 
                                    else guide_plus_pam)
             
-            for ((guide_pam_start, guide_pam_end), 
-                 guide_pam_seq) in find_iupac(this_guide_plus_pam, genome):
+            for i, ((guide_pam_start, guide_pam_end), 
+                     guide_pam_seq) in enumerate(find_iupac(this_guide_plus_pam, genome)):
                 
                 if not reverse:
-                    pam_start, pam_end = guide_pam_end - pam_len, guide_pam_end
+                    pam_start = guide_pam_end - pam_len
                     pam_seq = guide_pam_seq[-pam_len:]
-                    _pam_search = pam_search
-                    _guide_seq = guide_seq
+                    _guide_seq = guide_pam_seq[:-pam_len]
                 else:
-                    pam_start, pam_end = guide_pam_start, guide_pam_start + pam_len
+                    pam_start = guide_pam_start
                     pam_seq = guide_pam_seq[:pam_len]
-                    _pam_search = reverse_complement(pam_search)
-                    _guide_seq = reverse_complement(guide_seq)
-                
-                yield GuideMatch(**dict(pam_search=_pam_search,
-                                        pam_seq=pam_seq, 
-                                        guide_seq=_guide_seq,
-                                        pam_start=pam_start, 
-                                        pam_end=pam_end,
-                                        reverse=reverse))
+                    _guide_seq = guide_pam_seq[pam_len:]
+
+                gm = GuideMatch(pam_search=pam_search,
+                                pam_seq=pam_seq, 
+                                guide_seq=_guide_seq,
+                                pam_start=pam_start, 
+                                reverse=reverse)
+
+                guide_down, guide_up = get_context(gm.pam_start, gm.pam_end,
+                                                   gm.guide_start, gm.guide_end,
+                                                   genome=genome, 
+                                                   reverse=reverse)
+                gm.guide_context_down = guide_down
+                gm.guide_context_up = guide_up
+
+                yield gm
+
+        return i
 
     @classmethod
     def from_search(cls,
@@ -167,17 +207,18 @@ class GuideMatchCollection:
 
         Examples
         --------
-        >>> gmc = GuideMatchCollection.from_search("AAAAAAAAAAAAAAA", "AAAAAAAAAAAAAAACGG")
-        >>> len(list(gmc.matches))
-        1
+        >>> gmc = GuideMatchCollection.from_search("TTTTTTTAAAAAAA", "CCGTTTTTTTAAAAAAACGG")
+        >>> len(gmc)
+        2
         >>> for match in gmc.matches:
         ...     print(match)
         ... 
-        GuideMatch(pam_search='NGG', guide_seq='AAAAAAAAAAAAAAA', pam_seq='CGG', pam_start=15, pam_end=18, reverse=False, guide_context_up=None, guide_context_down=None, length=15, guide_start=0, guide_end=15)
+        TTTTTTTAAAAAAA
+        TTTTTTTAAAAAAA
 
         """
 
-        matches = list(match for match in cls._from_search(guide_seq, genome, pam_search))
+        matches = (match for match in cls._from_search(guide_seq, genome, pam_search))
 
         return cls(pam_search=pam_search, 
                    guide_seq=guide_seq, 
@@ -202,19 +243,19 @@ class GuideLibrary:
     genome: str
     guide_matches: Iterable[GuideMatchCollection]
 
-    def __post_init__(self):
+    def __iter__(self):
 
-        for guide_match_collection in self.guide_matches:
+        for match in self.guide_matches:
+            yield match
 
-            for match in guide_match_collection.matches:
+    
+    def __len__(self):
 
-                guide_down, guide_up = get_context(match.pam_start, match.pam_end,
-                                                   match.guide_start, match.guide_end,
-                                                   genome=self.genome, 
-                                                   reverse=match.reverse)
-                match.guide_context_down = guide_down
-                match.guide_context_up = guide_up
-
+        try:
+            return len(self.guide_matches)
+        except TypeError:
+            self.guide_matches = list(self.guide_matches)
+            return len(self.guide_matches)
 
     def as_gff(self, 
                max: Optional[int] = None,
@@ -243,22 +284,20 @@ class GuideLibrary:
 
         Examples
         --------
-        >>> genome = "TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC"
+        >>> genome = "ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGGATATATATATATAATATATATATATAATATATATATATA"
         >>> gl = GuideLibrary.from_generating(genome=genome)
         >>> for gff in gl.as_gff(gff_defaults=dict(seqid='my_seq', source='here', feature='protospacer')):  # doctest: +NORMALIZE_WHITESPACE
         ...     print(gff)
         ... 
-        my_seq  here    protospacer     15      34      .       +       .       ID=sgr-c68ad8a1;Name=34-dreary_trident;guide_context_down=AAAAAAAAAACCCCCCCCCC;guide_context_up=;guide_length=20;guide_re_sites=;guide_sequence=AAAAAATGATCGATCGATCG;guide_sequence_hash=ab91540e;mnemonic=dreary_trident;pam_end=37;pam_replichore=L;pam_search=NGG;pam_sequence=NGG;pam_start=34;source_name=34-dreary_trident
-        my_seq  here    protospacer     51      58      .       -       .       ID=sgr-5021e267;Name=47-vexed_sheriff;guide_context_down=TTTTTTTTTTCCNCGATCGA;guide_context_up=;guide_length=8;guide_re_sites=;guide_sequence=CCCCCCCC;guide_sequence_hash=acea9bbe;mnemonic=vexed_sheriff;pam_end=50;pam_replichore=L;pam_search=CCN;pam_sequence=GGG;pam_start=47;source_name=47-vexed_sheriff
-        my_seq  here    protospacer     54      58      .       -       .       ID=sgr-9443d154;Name=50-wistful_pattern;guide_context_down=GGGTTTTTTTTTTCCNCGAT;guide_context_up=;guide_length=5;guide_re_sites=;guide_sequence=CCCCC;guide_sequence_hash=17b80bc7;mnemonic=wistful_pattern;pam_end=53;pam_replichore=L;pam_search=CCN;pam_sequence=GGG;pam_start=50;source_name=50-wistful_pattern
-        my_seq  here    protospacer     57      58      .       -       .       ID=sgr-13a7ff38;Name=53-famous_jester;guide_context_down=GGGGGGTTTTTTTTTTCCNC;guide_context_up=;guide_length=2;guide_re_sites=;guide_sequence=CC;guide_sequence_hash=a56362a1;mnemonic=famous_jester;pam_end=56;pam_replichore=L;pam_search=CCN;pam_sequence=GGG;pam_start=53;source_name=53-famous_jester
+        my_seq    here    protospacer     23      42      .       +       .       ID=sgr-06a4ba9b;Name=42-united_exodus;guide_context_down=ATATATATATATAATATATA;guide_context_up=ATATATATATATATATATAT;guide_length=20;guide_re_sites=;guide_sequence=ATACCGTTTTTTTAAAAAAA;guide_sequence_hash=a3987295;mnemonic=united_exodus;pam_end=45;pam_replichore=L;pam_search=NGG;pam_sequence=CGG;pam_start=42;source_name=42-united_exodus        my_seq    here    protospacer     29      48      .       -       .       ID=sgr-f84d1c6a;Name=25-zigzag_state;guide_context_down=TATATATATATATATATATA;guide_context_up=ATATATATATTATATATATA;guide_length=20;guide_re_sites=;guide_sequence=TATCCGTTTTTTTAAAAAAA;guide_sequence_hash=188c9ee6;mnemonic=zigzag_state;pam_end=28;pam_replichore=R;pam_search=CCN;pam_sequence=CCG;pam_start=25;source_name=25-zigzag_stat
+        my_seq    here    protospacer     29      48      .       -       .       ID=sgr-f84d1c6a;Name=25-zigzag_state;guide_context_down=TATATATATATATATATATA;guide_context_up=ATATATATATTATATATATA;guide_length=20;guide_re_sites=;guide_sequence=TATCCGTTTTTTTAAAAAAA;guide_sequence_hash=188c9ee6;mnemonic=zigzag_state;pam_end=28;pam_replichore=R;pam_search=NGG;pam_sequence=CGG;pam_start=25;source_name=25-zigzag_state       
         """
 
         genome_length = len(self.genome)
         max = max or math.inf
         gff_defaults = gff_defaults or {}
 
-        for guide_match_collection in self.guide_matches:
+        for guide_match_collection in self:
 
             for i, match in enumerate(guide_match_collection.matches):
 
@@ -272,10 +311,8 @@ class GuideLibrary:
                     'source_name': guide_match_collection.guide_name,
                     'pam_start': match.pam_start, 
                     'pam_end': match.pam_end,
-                    'pam_search': (reverse_complement(match.pam_search) if match.reverse 
-                                   else match.pam_search), 
-                    'pam_sequence': (match.pam_seq if not match.reverse 
-                                    else reverse_complement(match.pam_seq)),
+                    'pam_search': match.pam_search, 
+                    'pam_sequence': match.pam_seq,
                     'pam_replichore': 'R' if ((match.pam_start / genome_length) < 0.5) else 'L',
                     'strand': ('+' if not match.reverse else '-'),
                     'start': ((match.guide_start + 1) if (match.guide_start + 1) > 0 
@@ -317,23 +354,17 @@ class GuideLibrary:
                               not_found=len(not_found))
 
                 try:
-
                     guide_matches = GuideMatchCollection.from_search(guide_seq=guide_sequence.sequence, 
                                                                      guide_name=guide_sequence.name,
                                                                      pam_search=pam_search, 
                                                                      genome=genome)
-                
                 except ValueError:
-                    
                     not_found[guide_sequence.name] = guide_sequence.sequence
-
                 else:
-
                     yield guide_matches
 
         pprint_dict(not_found, 
                     f'Not found: {len(not_found)} guides')
-
 
     @classmethod
     def from_mapping(cls,
@@ -358,18 +389,14 @@ class GuideLibrary:
 
         Examples
         --------
-        >>> genome = "TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC"
+        >>> genome = "CCCCCCCCCCCTTTTTTTTTTAAAAAAAAAATGATCGATCGATCGAGGAAAAAAAAAACCCCCCCCCCC"
         >>> guide_seq = "ATGATCGATCGATCG"
         >>> gl = GuideLibrary.from_mapping(guide_seq=guide_seq, genome=genome) 
-        >>> gl.genome
-        'TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC'
-        >>> len(gl.guide_matches)
-        1
-        >>> for collection in gl.guide_matches:
-        ...     for match in collection.matches:
-        ...             print(match)
-        ... 
-        GuideMatch(pam_search='NGG', guide_seq='ATGATCGATCGATCG', pam_seq='NGG', pam_start=34, pam_end=37, reverse=False, guide_context_up='', guide_context_down='AAAAAAAAAACCCCCCCCCC', length=15, guide_start=19, guide_end=34)
+        >>> for collection in gl:
+        ...     for match in collection:
+        ...             print(match.as_dict())
+        ...
+        {'pam_search': 'NGG', 'guide_seq': 'ATGATCGATCGATCG', 'pam_seq': 'AGG', 'pam_start': 45, 'reverse': False, 'guide_context_up': 'CTTTTTTTTTTAAAAAAAAA', 'guide_context_down': 'AAAAAAAAAACCCCCCCCCC', 'pam_end': 48, 'length': 15, 'guide_start': 30, 'guide_end': 45}
 
         """
         
@@ -393,7 +420,7 @@ class GuideLibrary:
 
             guide_seq = new_guide_seq
                 
-        matches = list(match for match in cls._from_mapping(guide_seq, genome, pam_search))
+        matches = (match for match in cls._from_mapping(guide_seq, genome, pam_search))
         
         return cls(genome=genome,
                    guide_matches=matches)
@@ -409,7 +436,7 @@ class GuideLibrary:
         
         for reverse in (False, True):
 
-            directionaility = 'reverse' if reverse else 'forward'
+            directionality = 'reverse' if reverse else 'forward'
         
             _pam_search = (reverse_complement(pam_search) if reverse 
                            else pam_search)
@@ -430,24 +457,30 @@ class GuideLibrary:
                                      pam_end + length)
 
                         guide_seq = genome[guide_start:guide_end]
-                        _guide_seq = (guide_seq if not reverse 
-                                      else reverse_complement(guide_seq))
                         
-                        t.set_postfix(direction=directionaility,
+                        t.set_postfix(direction=directionality,
                                       at_site=pam_start,
                                       pam_sites_found=found,
                                       guides_created=guides_created)
                         
-                        guide_match = GuideMatch(**dict(pam_search=pam_search,
-                                                        pam_seq=pam_seq, 
-                                                        guide_seq=_guide_seq,
-                                                        pam_start=pam_start, 
-                                                        pam_end=pam_end,
-                                                        reverse=reverse))
+                        gm = GuideMatch(pam_search=pam_search,
+                                                 pam_seq=pam_seq, 
+                                                 guide_seq=guide_seq,
+                                                 pam_start=pam_start, 
+                                                 reverse=reverse)
+                        guide_down, guide_up = get_context(gm.pam_start, gm.pam_end,
+                                                           gm.guide_start, gm.guide_end,
+                                                           genome=genome, 
+                                                           reverse=reverse)
+                        gm.guide_context_down = guide_down
+                        gm.guide_context_up = guide_up
 
+                        # TODO: Actually group by sequence
                         yield GuideMatchCollection(guide_seq=guide_seq, 
                                                    pam_search=_pam_search,
-                                                   matches=[guide_match])
+                                                   matches=[gm])
+                        
+        return guides_created
                         
     @classmethod
     def from_generating(cls,
@@ -471,23 +504,21 @@ class GuideLibrary:
 
         Examples
         --------
-        >>> genome = "TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC"
-        >>> gl = GuideLibrary.from_generating(genome=genome) 
+        >>> genome = "ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGGATATATATATATAATATATATATATAATATATATATATA"
+        >>> gl = GuideLibrary.from_generating(genome=genome)
         >>> gl.genome
-        'TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC'
-        >>> len(gl.guide_matches)
+        'ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGGATATATATATATAATATATATATATAATATATATATATA'
+        >>> len(gl)
         4
-        >>> for match_collection in gl.guide_matches:
-        ...     for guide in match_collection.matches:
+        >>> for match_collection in gl:
+        ...     for guide in match_collection:
         ...             print(guide)
         ... 
-        GuideMatch(pam_search='NGG', guide_seq='AAAAAATGATCGATCGATCG', pam_seq='NGG', pam_start=34, pam_end=37, reverse=False, guide_context_up='', guide_context_down='AAAAAAAAAACCCCCCCCCC', length=20, guide_start=14, guide_end=34)
-        GuideMatch(pam_search='NGG', guide_seq='CCCCCCCC', pam_seq='CCC', pam_start=47, pam_end=50, reverse=True, guide_context_up='', guide_context_down='TTTTTTTTTTCCNCGATCGA', length=8, guide_start=50, guide_end=58)
-        GuideMatch(pam_search='NGG', guide_seq='CCCCC', pam_seq='CCC', pam_start=50, pam_end=53, reverse=True, guide_context_up='', guide_context_down='GGGTTTTTTTTTTCCNCGAT', length=5, guide_start=53, guide_end=58)
-        GuideMatch(pam_search='NGG', guide_seq='CC', pam_seq='CCC', pam_start=53, pam_end=56, reverse=True, guide_context_up='', guide_context_down='GGGGGGTTTTTTTTTTCCNC', length=2, guide_start=56, guide_end=58)
-        
+        ATACCGTTTTTTTAAAAAAA
+        TATCCGTTTTTTTAAAAAAA
+
         """
         
-        matches = list(match for match in cls._from_generating(genome, max_length, min_length, pam_search))
+        matches = (match for match in cls._from_generating(genome, max_length, min_length, pam_search))
 
         return cls(genome=genome, guide_matches=matches)
