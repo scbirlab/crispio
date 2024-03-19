@@ -7,7 +7,6 @@ import math
 
 from bioino import FastaSequence, GffFile, GffLine
 from carabiner import pprint_dict
-from carabiner.cast import cast
 from nemony import encode, hash as nm_hash
 from streq import find_iupac, reverse_complement, which_re_sites
 from tqdm.auto import tqdm
