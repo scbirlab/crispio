@@ -215,7 +215,7 @@ class GuideMatchCollection:
         >>> gmc = GuideMatchCollection.from_search("TTTTTTTAAAAAAA", "CCGTTTTTTTAAAAAAACGG")
         >>> len(gmc)
         2
-        >>> for match in gmc.matches:
+        >>> for match in gmc:
         ...     print(match)
         ... 
         TTTTTTTAAAAAAA
@@ -541,7 +541,7 @@ class GuideLibrary:
         ...             print(guide)
         ... 
         ATACCGTTTTTTTAAAAAAA
-        TATCCGTTTTTTTAAAAAAA
+        ATACCGTTTTTTTAAAAAAA
 
         """
         
