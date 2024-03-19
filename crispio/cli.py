@@ -19,7 +19,7 @@ from .features import featurize
 from .map import GuideLibrary
 from .utils import sequences
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 def _allow_broken_pipe(f: Callable) -> Callable:
 

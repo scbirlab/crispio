@@ -1,6 +1,6 @@
 [project]
 name = "crispio"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
   { name="Eachan Johnson", email="eachan.johnson@crick.ac.uk" },
 ]
@@ -29,7 +29,6 @@ classifiers = [
 
 dependencies = [ 
   "bioino>=0.0.2",
-  "carabiner-tools",
   "pyyaml",
   "nemony",
   "numpy",
@@ -41,7 +40,7 @@ dependencies = [
 [project.optional-dependencies]
 fit = [
   "carabiner-tools[pd,mpl]",
-  "jax",
+  "jax[cuda12]",
   "optax",
   "scipy",
   "matplotlib",
