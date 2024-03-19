@@ -23,8 +23,6 @@ Sub-commands:
     offtarget           Compare two sets of guide RNAs for potential cross-target activity.
 ```
 
-## Generating new guide RNAs
-
 Given a genome in FASTA format and a matching GFF, 
 [both available for your favourite bacterium from NCBI](https://www.ncbi.nlm.nih.gov/genbank/ftp/),
 along with a PAM sequence or name of a common Cas9 ortholog, you can generate all the possible 
@@ -36,28 +34,17 @@ sites, and gives each guide RNA a unique ID and a human-readable
 adjective-noun mnemonic.
 
 ```bash
-crispio generate -l 20 --pam Sth1 -g EcoMG1655-NC_000913.3.fasta -a EcoMG1655-NC_000913.3.gff3 | head
+$ crispio generate -l 20 --pam Sth1 -g EcoMG1655-NC_000913.3.fasta -a EcoMG1655-NC_000913.3.gff3 | head
 
 🚀 Generating sgRNAs with the following parameters:
-        subcommand: generate
-        max_length: 20
-        min_length: None
-        pam: Sth1
-        genome: <_io.TextIOWrapper name='/dev/fd/63' mode='r' encoding='UTF-8'>
-        annotations: <_io.TextIOWrapper name='/dev/fd/62' mode='r' encoding='UTF-8'>
-        attributes: ['Name', 'locus_tag', 'old_locus_tag', 'gene', 'gene_biotype']
-        output: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>
-        func: <function _generate at 0x7fc2715bb160>
-Building annotation lookup table.
-100%|██████████████████████████████████████████████████████████████████████████████████████████████| 998/998 [00:02<00:00, 402.28it/s]
+        ...
+
 ##sequence-region NC_000913.3 1 4641652
-0it [00:00, ?it/s]##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=511145
+##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=511145
 ##genome-sequence       NC_000913.3     1       6930
 ##genome-description    Escherichia coli str. K-12 substr. MG1655, complete genome
 ##genome-filename       63
 #sgRNA-map      crispio 63      62
-153it [00:00, 13306.14it/s, at_site=6918, direction=forward, guides_created=153, pam_sites_found=153]
-162it [00:00, 10236.95it/s, at_site=6757, direction=reverse, guides_created=315, pam_sites_found=315]
 NC_000913.3     crispio protospacer     2       21      .       +       .       ID=sgr-e5373243;Name=thrL-21-modest_saddle;ann_Name=thrL;ann_end=255;ann_feature=gene;ann_gene=thrL;ann_gene_biotype=protein_coding;ann_locus_tag=_up-thrL;ann_phase=.;ann_score=.;ann_seqid=NC_000913.3;ann_source=RefSeq;ann_start=190;ann_strand=+;guide_context_down=TATGTCTCTGTGTGGATTAA;guide_context_up=CAGCACCCCAGGAACCCATA;guide_length=20;guide_re_sites=;guide_sequence=GCTTTTCATTCTGACTGCAA;guide_sequence_hash=19d8fdaa;mnemonic=modest_saddle;pam_end=28;pam_offset=-166;pam_replichore=R;pam_search=NNRGVAN;pam_sequence=CGGGCAA;pam_start=21;source_name=thrL-21-modest_saddle
 
 ...
@@ -73,7 +60,8 @@ It can be dense for human beings to parse, so you can convert to a TSV using
 [`bioino ggf2table`](https://github.com/scbirlab/bioino#command-line):
 
 ```bash
-$ head guides.gff | bioino gff2table 2> /dev/null
+$ head guides.gff | bioino gff2table
+...
 
 seqid   source  feature start   end     score   strand  phase   ID      Name    ann_Name        ann_end ann_feature     ann_gene     ann_gene_biotype ann_locus_tag   ann_phase       ann_score       ann_seqid       ann_source      ann_start       ann_strand      guide_context_down    guide_context_up        guide_length    guide_re_sites  guide_sequence  guide_sequence_hash     mnemonic        pam_end       pam_offset      pam_replichore  pam_search      pam_sequence    pam_start       source_name
 NC_000913.3     crispio protospacer     2       21      .       +       .       sgr-e5373243    thrL-21-modest_saddle   thrL    255  gene     thrL    protein_coding  _up-thrL        .       .       NC_000913.3     RefSeq  190     +       TATGTCTCTGTGTGGATTAA    CAGCACCCCAGGAACCCATA  20              GCTTTTCATTCTGACTGCAA    19d8fdaa        modest_saddle   28      -166    R       NNRGVAN CGGGCAA 21   thrL-21-modest_saddle
@@ -95,9 +83,6 @@ $ crispio map cv-nar-2020_TableS1.fasta -g EcoMG1655-NC_000913.3.fasta -a EcoMG1
 
 🚀 Mapping sgRNAs with the following parameters:
        ...
-Building annotation lookup table.
-100%|████████████████████████████████████████████████████████████████████████████████████████████| 9490/9490 [00:24<00:00, 389.80it/s]
-
 Finding sgRNA sites matching 21417 sequences from cv-nar-2020_TableS1.fasta and matching PAM Spy (NGGN) in EcoMG1655-NC_000913.3.fasta...
 
 ##sequence-region NC_000913.3 1 4641652
@@ -106,18 +91,11 @@ Finding sgRNA sites matching 21417 sequences from cv-nar-2020_TableS1.fasta and 
 ##genome-description    Escherichia coli str. K-12 substr. MG1655, complete genome
 ##genome-filename       EcoMG1655-NC_000913.3.fasta
 #sgRNA-map      crispio EcoMG1655-NC_000913.3.fasta     EcoMG1655-NC_000913.3.gff3
-100%|████████████████████████████████████████████████████| 100/100 [00:11<00:00,  8.77it/s, current=GAATGCTACCGCCAGTGACC, not_found=0]
-Not found: 0 guides:
-
 NC_000913.3     crispio     2400946 2400965 .       +       .       ID=sgr-7a0a4f43;Name=nuoF-2400965-level_herman;ann_Name=nuoF;ann_end=2401555;ann_feature=gene;ann_gene=nuoF;ann_gene_biotype=protein_coding;ann_locus_tag=b2284;ann_phase=.;ann_score=.;ann_seqid=NC_000913.3;ann_source=RefSeq;ann_start=2400218;ann_strand=-;guide_context_down=TAGCACGACGTCCTTCCAGG;guide_context_up=CCATGCGCCGGAGGTTGCCG;guide_length=20;guide_re_sites=;guide_sequence=GGAAGGGTGGCTTCGAGCGT;guide_sequence_hash=6a359e86;mnemonic=level_herman;pam_end=2400969;pam_offset=0;pam_replichore=L;pam_search=NGGN;pam_sequence=GGGT;pam_start=2400965;source_name=GGAAGGGTGGCTTCGAGCGT
 
 ...
 
 NC_000913.3     crispio protospacer     2400933 2400952 .       +       .       ID=sgr-32446b00;Name=nuoF-2400952-telling_austria;ann_Name=nuoF;ann_end=2401555;ann_feature=gene;ann_gene=nuoF;ann_gene_biotype=protein_coding;ann_locus_tag=b2284;ann_phase=.;ann_score=.;ann_seqid=NC_000913.3;ann_source=RefSeq;ann_start=2400218;ann_strand=-;guide_context_down=TTCGAGCGTGGGTTAGCACG;guide_context_up=AGGTCGGTTTACCCCATGCG;guide_length=20;guide_re_sites=;guide_sequence=CCGGAGGTTGCCGGGAAGGG;guide_sequence_hash=1908728f;mnemonic=telling_austria;pam_end=2400956;pam_offset=0;pam_replichore=L;pam_search=NGGN;pam_sequence=TGGC;pam_start=2400952;source_name=CCGGAGGTTGCCGGGAAGGG
-
-...
-
-⏰ Completed process in 0:44:13.882252
 ```
 
 If you don't have a FASTA to hand, but a table instead, you can pipe it
@@ -137,7 +115,6 @@ NC_000913.3     crispio protospacer     1236    1255    .       +       .       
 ...
 
 NC_000913.3     crispio protospacer     3999    4018    .       +       .       ID=sgr-83d65199;Name=thrC-4018-jolly_lunar;ann_Name=thrC;ann_end=5020;ann_feature=gene;ann_gene=thrC;ann_gene_biotype=protein_coding;ann_locus_tag=b0004;ann_phase=.;ann_score=.;ann_seqid=NC_000913.3;ann_source=RefSeq;ann_start=3734;ann_strand=+;guide_context_down=TGTTCCACGGGCCAACGCTG;guide_context_up=CCCGGCTCCGGTCGCCAATG;guide_length=20;guide_re_sites=BtgZI;guide_sequence=TTGAAAGCGATGTCGGTTGT;guide_sequence_hash=e539f903;mnemonic=jolly_lunar;pam_end=4025;pam_offset=1286;pam_replichore=R;pam_search=NNRGVAN;pam_sequence=CTGGAAT;pam_start=4018;source_name=thrC-4018-jolly_lunar
-
 ```
 
 ## Annotating with extra features
@@ -171,9 +148,6 @@ NC_000913.3     crispin protospacer     2400946 2400965 .       +       .       
 ...
 
 NC_000913.3     crispin protospacer     1764112 1764131 .       +       .       ID=sgr-f3815635;Name=sufA-1764131-scarce_game;ann_Name=sufA;ann_end=1764386;ann_feature=gene;ann_gene=sufA;ann_gene_biotype=protein_coding;ann_locus_tag=b1684;ann_phase=.;ann_score=.;ann_seqid=NC_000913.3;ann_source=RefSeq;ann_start=1764018;ann_strand=-;guide_context_down=ATCGCTTGCAGCGGGACAAA;guide_context_up=GTCCTTCACGAACGAAATCG;guide_length=20;guide_re_sites=;guide_sequence=ACTTCCGTGCCATCAATAAA;guide_sequence_hash=dc4688e0;mnemonic=scarce_game;pam_end=1764135;pam_offset=0;pam_replichore=R;pam_search=NGGN;pam_sequence=CGGC;pam_start=1764131;source_name=ACTTCCGTGCCATCAATAAA;feat_on_nontemplate_strand=True;feat_context_up2=CG;feat_context_down2=AT;feat_context_up_autocorr=7.159;feat_pam_n=C;feat_pam_def=GGC;feat_pam_gc=1.000;feat_pam_autocorr=2.333;feat_pam_scaff_corr=1.667;feat_guide_purine=0.450;feat_guide_gc=0.400;feat_seed_seq=ATAAA;feat_guide_start3=ACT;feat_guide_end3=AAA;feat_guide_autocorr=7.767;feat_guide_scaff_corr=10.528
-
-100%|███████████████████████████████████████████████████████████████| 4/4 [00:00<00:00, 1331.21it/s, current=sufA-1764131-scarce_game]
-⏰ Completed process in 0:00:00.065336
 ```
 
 The attributes starting with `feat_` have been added.
@@ -210,46 +184,38 @@ in Python scripts.
 Guides can be generated *de novo*.
 
 ```python 
->>> from crispio import GuideLibrary
+from crispio import GuideLibrary
 
->>> genome = "TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC"
->>> gl = GuideLibrary.from_generating(genome=genome) 
-1it [00:00, 2223.92it/s, at_site=34, direction=forward, guides_created=1, pam_sites_found=1]
-3it [00:00, 6397.01it/s, at_site=53, direction=reverse, guides_created=4, pam_sites_found=4]
->>> gl.genome
-'TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC'
->>> len(gl.guide_matches)
-4
->>> for match_collection in gl.guide_matches:
-...     for guide in match_collection.matches:
-...             print(guide)
-... 
-GuideMatch(pam_search='NGG', guide_seq='AAAAAATGATCGATCGATCG', pam_seq='NGG', pam_start=34, pam_end=37, reverse=False, guide_context_up='', guide_context_down='AAAAAAAAAACCCCCCCCCC', length=20, guide_start=14, guide_end=34)
-GuideMatch(pam_search='NGG', guide_seq='CCCCCCCC', pam_seq='CCC', pam_start=47, pam_end=50, reverse=True, guide_context_up='', guide_context_down='TTTTTTTTTTCCNCGATCGA', length=8, guide_start=50, guide_end=58)
-GuideMatch(pam_search='NGG', guide_seq='CCCCC', pam_seq='CCC', pam_start=50, pam_end=53, reverse=True, guide_context_up='', guide_context_down='GGGTTTTTTTTTTCCNCGAT', length=5, guide_start=53, guide_end=58)
-GuideMatch(pam_search='NGG', guide_seq='CC', pam_seq='CCC', pam_start=53, pam_end=56, reverse=True, guide_context_up='', guide_context_down='GGGGGGTTTTTTTTTTCCNC', length=2, guide_start=56, guide_end=58)
+genome = "ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGGATATATATATATAATATATATATATAATATATATATATA"
+gl = GuideLibrary.from_generating(genome=genome) 
+for match_collection in gl:
+    for guide in match_collection:
+            print(guide)
 ```
 
-Or they can be mapped to a genome. 
+The above code would return:
+
+```
+ATACCGTTTTTTTAAAAAAA
+ATACCGTTTTTTTAAAAAAA
+```
+
+Or known guide sequences can be mapped to a genome. 
 
 ```python
->>> from crispio import GuideLibrary
+from crispio import GuideLibrary
 
->>> genome = "TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC"
->>> guide_seq = "ATGATCGATCGATCG"
->>> gl = GuideLibrary.from_mapping(guide_seq=guide_seq, genome=genome)  # doctest: +SKIP
-100%|████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 2263.52it/s, current=ATGATCGATCGATCGNGG, not_found=0]
-Not found: 0 guides:
+genome = "CCCCCCCCCCCTTTTTTTTTTAAAAAAAAAATGATCGATCGATCGAGGAAAAAAAAAACCCCCCCCCCC"
+guide_seq = "ATGATCGATCGATCG"
+gl = GuideLibrary.from_mapping(guide_seq=guide_seq, genome=genome) 
 
->>> gl.genome
-'TTTTTTTTTTAAAAAAAAAATGATCGATCGATCGNGGAAAAAAAAAACCCCCCCCCCC'
->>> len(gl.guide_matches)
-1
->>> for collection in gl.guide_matches:
-...     for match in collection.matches:
-...             print(match)
-... 
-GuideMatch(pam_search='NGG', guide_seq='ATGATCGATCGATCG', pam_seq='NGG', pam_start=34, pam_end=37, reverse=False, guide_context_up='', guide_context_down='AAAAAAAAAACCCCCCCCCC', length=15, guide_start=19, guide_end=34)
+for collection in gl:
+    for match in collection:
+            print(match.as_dict())
 ```
 
-Check the full API in the [documentation](https://readthedocs.org/crispio).
+This code would return:
+
+```
+{'pam_search': 'NGG', 'guide_seq': 'ATGATCGATCGATCG', 'pam_seq': 'AGG', 'pam_start': 45, 'reverse': False, 'guide_context_up': 'CTTTTTTTTTTAAAAAAAAA', 'guide_context_down': 'AAAAAAAAAACCCCCCCCCC', 'pam_end': 48, 'length': 15, 'guide_start': 30, 'guide_end': 45}
+```
