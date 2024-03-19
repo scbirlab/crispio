@@ -541,7 +541,7 @@ class GuideLibrary:
         ...             print(guide)
         ... 
         ATACCGTTTTTTTAAAAAAA
-        ATACCGTTTTTTTAAAAAAA
+        TATCCGTTTTTTTAAAAAAA
 
         """
         
