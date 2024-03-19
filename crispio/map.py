@@ -106,7 +106,6 @@ class GuideMatchCollection:
     pam_search: str
     matches: Iterable[GuideMatch]
     guide_name: Optional[str] = field(default=None)
-    _len: Optional[int] = field(default=None)
 
     def __iter__(self):
 
@@ -116,14 +115,18 @@ class GuideMatchCollection:
 
     def __len__(self):
 
+        """Give the number of matches.
+        
+        If the matches are not yet instantiated, this will instantiate the matches. 
+        Depending on the size of the search, it can take memory and time.
+        
+        """
+
         try:
             return len(self.matches)
         except TypeError:
-            if self._len is not None:
-                return self._len
-            else:            
-                self.matches = list(self.matches)
-                return len(self.matches)            
+            self.matches = list(self.matches)
+            return len(self.matches)            
 
     @staticmethod
     def _from_search(guide_seq: str, 
@@ -177,12 +180,15 @@ class GuideMatchCollection:
                     guide_seq: str,
                     genome: str,
                     pam_search: str = "NGG",
-                    guide_name: Optional[str] = None):
+                    guide_name: Optional[str] = None,
+                    in_memory: bool = False):
         
         """Find the location of a guide sequence in a genome.
 
         Searches the genome in the forward strand then the reverse strand,
         returning the match with an adjacent PAM in the order found.
+
+        The default behavior is to find matches lazily to save memory and time.
 
         Parameters
         ----------
@@ -220,6 +226,9 @@ class GuideMatchCollection:
 
         matches = (match for match in cls._from_search(guide_seq, genome, pam_search))
 
+        if in_memory:
+            matches = list(matches)
+
         return cls(pam_search=pam_search, 
                    guide_seq=guide_seq, 
                    guide_name=guide_name,
@@ -250,6 +259,13 @@ class GuideLibrary:
 
     
     def __len__(self):
+
+        """Give the number of matches.
+        
+        If the matches are not yet instantiated, this will instantiate the matches. 
+        Depending on the size of the search, it can take memory and time.
+        
+        """
 
         try:
             return len(self.guide_matches)
@@ -370,9 +386,12 @@ class GuideLibrary:
     def from_mapping(cls,
                      guide_seq: Union[str, Iterable[str], FastaSequence, Iterable[FastaSequence]],
                      genome: str,
-                     pam_search: str = "NGG"):
+                     pam_search: str = "NGG",
+                     in_memory: bool = False):
         
         """Map a set of known guides to a genome.
+
+        The default behavior is to find matches lazily to save memory and time.
         
         Parameters
         ----------
@@ -382,6 +401,8 @@ class GuideLibrary:
             Genome to map against.
         pam_search : str
             IUPAC PAM sequence to search against.
+        in_memory : bool, optional
+            Whether to instantiate matches in memory. Default: lazy matching.
 
         Returns
         -------
@@ -421,6 +442,9 @@ class GuideLibrary:
             guide_seq = new_guide_seq
                 
         matches = (match for match in cls._from_mapping(guide_seq, genome, pam_search))
+
+        if in_memory:
+            matches = list(matches)
         
         return cls(genome=genome,
                    guide_matches=matches)
@@ -487,9 +511,12 @@ class GuideLibrary:
                         genome: str,
                         max_length: int = 20,
                         min_length: Optional[int] = None, 
-                        pam_search: str = "NGG"):
+                        pam_search: str = "NGG",
+                        in_memory: bool = False):
         
         """Find all guides matching a PAM sequence in a given genome.
+
+        The default behavior is to find matches lazily to save memory and time.
 
         Parameters
         ----------
@@ -501,6 +528,8 @@ class GuideLibrary:
             Minimum guide length. Default: same as max_length.
         pam_search : str, optional
             IUPAC PAM sequence to search for. Default: "NGG".
+        in_memory : bool, optional
+            Whether to instantiate matches in memory. Default: lazy matching.
 
         Examples
         --------
@@ -520,5 +549,8 @@ class GuideLibrary:
         """
         
         matches = (match for match in cls._from_generating(genome, max_length, min_length, pam_search))
+
+        if in_memory:
+            matches = list(matches)
 
         return cls(genome=genome, guide_matches=matches)
