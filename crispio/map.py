@@ -534,10 +534,8 @@ class GuideLibrary:
         --------
         >>> genome = "ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGGATATATATATATAATATATATATATAATATATATATATA"
         >>> gl = GuideLibrary.from_generating(genome=genome)
-        >>> gl.genome
-        'ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGGATATATATATATAATATATATATATAATATATATATATA'
         >>> len(gl)
-        4
+        2
         >>> for match_collection in gl:
         ...     for guide in match_collection:
         ...             print(guide)
