@@ -1,7 +1,6 @@
 """Command-line interface for crispio."""
 
-from typing import (Callable, Dict, Iterable, 
-                    Mapping, Optional, Tuple, Union)
+from typing import (Callable, Dict, Tuple, Union)
 
 from argparse import Namespace, FileType
 from dataclasses import replace
@@ -9,13 +8,12 @@ from io import TextIOWrapper
 import os
 import sys
 
-from bioino import FastaCollection, FastaSequence, GffFile, GffLine
+from bioino import FastaCollection, FastaSequence, GffFile
 from carabiner import print_err
 from carabiner.cliutils import CLIApp, CLICommand, CLIOption, clicommand
 from tqdm.auto import tqdm
 from streq import Circular
 
-from .annotate import annotate_from_gff
 from .crosstalk import _get_mismatches
 from .features import featurize
 from .map import GuideLibrary
