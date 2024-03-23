@@ -108,9 +108,11 @@ class GuideMatchCollection:
 
     def __iter__(self):
 
-        for match in self.matches:
-
-            yield match
+        try:
+            for match in self.matches:
+                yield match
+        except ValueError as e:
+            raise e
 
     def __len__(self):
 
@@ -223,7 +225,7 @@ class GuideMatchCollection:
 
         """
 
-        matches = (match for match in cls._from_search(guide_seq, genome, pam_search))
+        matches = cls._from_search(guide_seq, genome, pam_search)
 
         if in_memory:
             matches = list(matches)
@@ -252,10 +254,12 @@ class GuideLibrary:
     guide_matches: Iterable[GuideMatchCollection]
 
     def __iter__(self):
-
-        for match in self.guide_matches:
-            yield match
-
+        
+        try:
+            for match in self.guide_matches:
+                yield match
+        except ValueError as e:
+            raise e
     
     def __len__(self):
 
@@ -372,14 +376,17 @@ class GuideLibrary:
                     guide_matches = GuideMatchCollection.from_search(guide_seq=guide_sequence.sequence, 
                                                                      guide_name=guide_sequence.name,
                                                                      pam_search=pam_search, 
-                                                                     genome=genome)
+                                                                     genome=genome, 
+                                                                     in_memory=True)  ## forces the ValueError to be raised now
                 except ValueError:
                     not_found[guide_sequence.name] = guide_sequence.sequence
                 else:
                     yield guide_matches
 
         pprint_dict(not_found, 
-                    f'Not found: {len(not_found)} guides')
+                    message=f'Not found: {len(not_found)} guides')
+
+        return not_found
 
     @classmethod
     def from_mapping(cls,
@@ -388,7 +395,7 @@ class GuideLibrary:
                      pam_search: str = "NGG",
                      in_memory: bool = False):
         
-        """Map a set of known guides to a genome.
+        """Map a set of expected guides to a genome.
 
         The default behavior is to find matches lazily to save memory and time.
         
@@ -440,7 +447,7 @@ class GuideLibrary:
 
             guide_seq = new_guide_seq
                 
-        matches = (match for match in cls._from_mapping(guide_seq, genome, pam_search))
+        matches = cls._from_mapping(guide_seq, genome, pam_search)
 
         if in_memory:
             matches = list(matches)
