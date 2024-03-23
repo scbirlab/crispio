@@ -417,7 +417,7 @@ class GuideLibrary:
         Examples
         --------
         >>> genome = "CCCCCCCCCCCTTTTTTTTTTAAAAAAAAAATGATCGATCGATCGAGGAAAAAAAAAACCCCCCCCCCC"
-        >>> guide_seq = "ATGATCGATCGATCG"
+        >>> guide_seq = ["ATGATCGATCGATCG", "ATGATCGATCGATCGCCC"]
         >>> gl = GuideLibrary.from_mapping(guide_seq=guide_seq, genome=genome) 
         >>> for collection in gl:
         ...     for match in collection:
