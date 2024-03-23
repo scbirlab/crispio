@@ -133,10 +133,6 @@ class GuideMatchCollection:
     def _from_search(guide_seq: str, 
                      genome: str,
                      pam_search: str = "NGG") -> Iterable[Tuple[int, Dict[str, GuideMatch]]]:
-    
-        if (guide_seq not in genome and 
-            reverse_complement(guide_seq) not in genome):
-            raise ValueError(f'{guide_seq} not in genome')
 
         pam_len = len(pam_search)
 
@@ -173,8 +169,6 @@ class GuideMatchCollection:
                 gm.guide_context_up = guide_up
 
                 yield gm
-
-        return i
 
     @classmethod
     def from_search(cls,
@@ -224,6 +218,9 @@ class GuideMatchCollection:
         TTTTTTTAAAAAAA
 
         """
+
+        if guide_seq not in genome and reverse_complement(guide_seq) not in genome:
+            raise ValueError(f'{guide_seq} not in genome')
 
         matches = cls._from_search(guide_seq, genome, pam_search)
 
@@ -376,8 +373,7 @@ class GuideLibrary:
                     guide_matches = GuideMatchCollection.from_search(guide_seq=guide_sequence.sequence, 
                                                                      guide_name=guide_sequence.name,
                                                                      pam_search=pam_search, 
-                                                                     genome=genome, 
-                                                                     in_memory=True)  ## forces the ValueError to be raised now
+                                                                     genome=genome)
                 except ValueError:
                     not_found[guide_sequence.name] = guide_sequence.sequence
                 else:
