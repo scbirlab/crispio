@@ -40,16 +40,24 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-fit = [
-  "jax[cuda12]",
-  "optax",
+fit_base = [
   "scipy",
   "matplotlib",
 ]
-fit_cuda_local = [
+fit = [
+  "crispio[fit_base]",
+  "jax",
+  "optax",
+]
+fit_cuda12 = [
+  "crispio[fit_base]",
+  "jax[cuda12]",
+  "optax",
+]
+fit_cuda12_local = [
+  "crispio[fit_base]",
   "jax[cuda12_local]",
   "optax",
-  "scipy",
 ]
 
 [project.urls]
