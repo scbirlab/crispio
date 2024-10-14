@@ -24,11 +24,13 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3 :: Only",
 ]
 
 dependencies = [ 
   "bioino>=0.0.2",
+  "carabiner-tools[pd,mpl]>=0.0.3.post1",
   "pyyaml",
   "nemony",
   "numpy",
@@ -39,11 +41,15 @@ dependencies = [
 
 [project.optional-dependencies]
 fit = [
-  "carabiner-tools[pd,mpl]",
   "jax[cuda12]",
   "optax",
   "scipy",
   "matplotlib",
+]
+fit_cuda_local = [
+  "jax[cuda12_local]",
+  "optax",
+  "scipy",
 ]
 
 [project.urls]
