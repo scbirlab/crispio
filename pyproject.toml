@@ -4,9 +4,9 @@ version = "0.0.2.post2"
 authors = [
   { name="Eachan Johnson", email="eachan.johnson@crick.ac.uk" },
 ]
-description = "Designing CRISPR-Cas guide RNAs in bacteria."
+description = "Designing CRISPR-Cas guide RNAs in bacteria, and calculating fitness from CRISPRi-seq experiments."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {file = "LICENSE"}
 keywords = ["biology", "CRISPR", "science", "bacteria"]
 
@@ -20,7 +20,6 @@ classifiers = [
 
   "License :: OSI Approved :: MIT License",
 
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
