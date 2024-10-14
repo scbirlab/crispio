@@ -1,5 +1,5 @@
-/crispio/fitness.py
-/crispio/plot.py
+.nextflow/
+.nextflow.*
 
 *.pyc
 *.so
