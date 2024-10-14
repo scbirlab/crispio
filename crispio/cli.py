@@ -14,12 +14,11 @@ from carabiner.cliutils import CLIApp, CLICommand, CLIOption, clicommand
 from tqdm.auto import tqdm
 from streq import Circular
 
+from . import __version__
 from .crosstalk import _get_mismatches
 from .features import featurize
 from .map import GuideLibrary
 from .utils import sequences
-
-__version__ = '0.0.2.post2'
 
 def _allow_broken_pipe(f: Callable) -> Callable:
 
@@ -286,11 +285,12 @@ def main():
                            main=_offtarget,
                            options=[inputs, gff2, mismatches, outputs])
     
-    app = CLIApp('crispin', 
-                 description='Design and analysis of bacterial CRISPRi experiments.',
-                 version=__version__,
-                 commands=[generate, map_guides, featurize, offtarget])
-
+    app = CLIApp(
+        'crispio', 
+        description='Design and analysis of bacterial CRISPRi experiments.',
+        version=__version__,
+        commands=[generate, map_guides, featurize, offtarget]
+    )
     app.run()
 
     return None
