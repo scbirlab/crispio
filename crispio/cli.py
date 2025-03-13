@@ -351,7 +351,7 @@ def main():
     )
     
     app = CLIApp(
-        'crispin', 
+        'crispio', 
         description='Design and analysis of bacterial CRISPRi experiments.',
         version=__version__,
         commands=[
