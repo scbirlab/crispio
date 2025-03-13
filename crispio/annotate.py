@@ -6,13 +6,17 @@ from dataclasses import asdict
 
 from bioino import GffFile
 
-Tguide = Dict[str, Union[str, int]]
-
-_TAGS = ('Name', 'locus_tag', 'gene_biotype')
+_TAGS = (
+    'Name', 
+    'locus_tag', 
+    'gene_biotype',
+)
             
-def annotate_from_gff(sgRNA: Tguide, 
-                      gff_data: GffFile, 
-                      tags: Optional[Iterable[str]] = None) -> Mapping:
+def annotate_from_gff(
+    sgRNA: Mapping[str, Union[str, int]], 
+    gff_data: GffFile, 
+    tags: Optional[Iterable[str]] = None,
+) -> Dict[str, Union[str, int]]:
     
     """Annotate dictionary of guide information with GFF annotations.
 
@@ -37,31 +41,28 @@ def annotate_from_gff(sgRNA: Tguide,
     """
     
     tags = tags or _TAGS
-
-    pam_loc = sgRNA['pam_start'] + abs(sgRNA['pam_start'] - sgRNA['pam_end']) // 2
+    pam_loc = (
+        sgRNA['pam_start'] 
+        + abs(sgRNA['pam_start'] 
+        - sgRNA['pam_end']) // 2
+    )
 
     try:
-
         annotation_matches = gff_data._lookup[pam_loc][0]
-
     except IndexError:
-
-        raise IndexError(f"Pam loc {pam_loc} is not annotated:\n"
-                         f"{gff_data._lookup[pam_loc]}\n{gff_data._lookup[pam_loc - 1]}")
+        raise IndexError(
+            f"Pam loc {pam_loc} is not annotated:\n{gff_data._lookup[pam_loc]}\n{gff_data._lookup[pam_loc - 1]}"
+        )
 
     for tag in tags:
-
         try:
-
             sgRNA[f'ann_{tag}'] = annotation_matches.attributes[tag]
-
         except KeyError:
-
             pass
         
     sgRNA['pam_offset'] = annotation_matches.attributes['offset']
-
-    sgRNA.update({f'ann_{header}': val for header, val 
-                  in asdict(annotation_matches.columns).items()})
+    sgRNA.update({
+        f'ann_{header}': val for header, val in asdict(annotation_matches.columns).items()
+    })
 
     return sgRNA
