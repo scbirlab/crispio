@@ -5,6 +5,7 @@ from typing import Dict, Iterable, Mapping, Optional, Union
 from dataclasses import asdict
 
 from bioino import GffFile
+from carabiner import print_err
 
 _TAGS = (
     'Name', 
@@ -49,14 +50,26 @@ def annotate_from_gff(
 
     try:
         annotation_matches = gff_data._lookup[pam_loc][0]
-    except IndexError:
-        raise IndexError(
-            f"Pam loc {pam_loc} is not annotated:\n{gff_data._lookup[pam_loc]}\n{gff_data._lookup[pam_loc - 1]}"
-        )
-
+    except KeyError as e:
+        max_key = max(map(int, gff_data._lookup))
+        print_err(e, "\n", f"Locus {pam_loc} not present in parsed GFF data. Maximum locus is {max_key}. Defaulting to this feature.")
+        annotation_matches = gff_data._lookup[max_key][0]
+        past_max = True
+    else:
+        past_max = False
+        
     for tag in tags:
+        if tag == "locus_tag" and past_max:
+            source_tag = "Name"
+            if annotation_matches.columns.strand == "+":
+                prefix = "_down-"
+            else:
+                prefix = "_up-"
+        else:
+            source_tag = tag
+            prefix = ""
         try:
-            sgRNA[f'ann_{tag}'] = annotation_matches.attributes[tag]
+            sgRNA[f'ann_{tag}'] = prefix + annotation_matches.attributes[source_tag]
         except KeyError:
             pass
         
