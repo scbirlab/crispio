@@ -29,19 +29,20 @@ classifiers = [
 
 dependencies = [ 
   "bioino>=0.0.2",
+  "carabiner-tools>=0.0.4",
   "pyyaml",
   "nemony",
-  "numpy",
-  "pandas",
   "streq",
-  "tqdm"
+  "tqdm",
 ]
 
 [project.optional-dependencies]
 fit = [
-  "carabiner-tools[pd,mpl]",
+  "carabiner-tools[pd,mpl]>=0.0.4",
   "jax[cuda12]",
+  "numpy",
   "optax",
+  "pandas",
   "scipy",
   "matplotlib",
 ]
