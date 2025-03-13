@@ -5,14 +5,19 @@ from typing import Dict, Iterable, Mapping, Optional, Union
 from dataclasses import asdict
 
 from bioino import GffFile
+from carabiner import print_err
 
-Tguide = Dict[str, Union[str, int]]
-
-_TAGS = ('Name', 'locus_tag', 'gene_biotype')
+_TAGS = (
+    'Name', 
+    'locus_tag', 
+    'gene_biotype',
+)
             
-def annotate_from_gff(sgRNA: Tguide, 
-                      gff_data: GffFile, 
-                      tags: Optional[Iterable[str]] = None) -> Mapping:
+def annotate_from_gff(
+    sgRNA: Mapping[str, Union[str, int]], 
+    gff_data: GffFile, 
+    tags: Optional[Iterable[str]] = None,
+) -> Dict[str, Union[str, int]]:
     
     """Annotate dictionary of guide information with GFF annotations.
 
@@ -37,31 +42,40 @@ def annotate_from_gff(sgRNA: Tguide,
     """
     
     tags = tags or _TAGS
-
-    pam_loc = sgRNA['pam_start'] + abs(sgRNA['pam_start'] - sgRNA['pam_end']) // 2
+    pam_loc = (
+        sgRNA['pam_start'] 
+        + abs(sgRNA['pam_start'] 
+        - sgRNA['pam_end']) // 2
+    )
 
     try:
-
         annotation_matches = gff_data._lookup[pam_loc][0]
-
-    except IndexError:
-
-        raise IndexError(f"Pam loc {pam_loc} is not annotated:\n"
-                         f"{gff_data._lookup[pam_loc]}\n{gff_data._lookup[pam_loc - 1]}")
-
+    except KeyError as e:
+        max_key = max(map(int, gff_data._lookup))
+        print_err(e, "\n", f"Locus {pam_loc} not present in parsed GFF data. Maximum locus is {max_key}. Defaulting to this feature.")
+        annotation_matches = gff_data._lookup[max_key][0]
+        past_max = True
+    else:
+        past_max = False
+        
     for tag in tags:
-
+        if tag == "locus_tag" and past_max:
+            source_tag = "Name"
+            if annotation_matches.columns.strand == "+":
+                prefix = "_down-"
+            else:
+                prefix = "_up-"
+        else:
+            source_tag = tag
+            prefix = ""
         try:
-
-            sgRNA[f'ann_{tag}'] = annotation_matches.attributes[tag]
-
+            sgRNA[f'ann_{tag}'] = prefix + annotation_matches.attributes[source_tag]
         except KeyError:
-
             pass
         
     sgRNA['pam_offset'] = annotation_matches.attributes['offset']
-
-    sgRNA.update({f'ann_{header}': val for header, val 
-                  in asdict(annotation_matches.columns).items()})
+    sgRNA.update({
+        f'ann_{header}': val for header, val in asdict(annotation_matches.columns).items()
+    })
 
     return sgRNA
