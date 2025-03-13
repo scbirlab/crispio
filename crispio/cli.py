@@ -82,10 +82,10 @@ def _prepare_to_search(args: Namespace) -> Tuple[FastaSequence, GffFile, str, Di
     
     sgRNA_defaults = {
         "seqid": fasta_sequence.name,
-         "source": __package__,
-         "feature": 'protospacer',
-         "score": '.',
-         "phase": '.',
+        "source": __package__,
+        "feature": 'protospacer',
+        "score": '.',
+        "phase": '.',
     }
     
     return fasta_sequence, gff_data, pam_search, sgRNA_defaults
