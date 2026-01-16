@@ -114,7 +114,6 @@ def _map(args: Namespace) -> None:
     )
 
     for guide_match in guide_library.as_gff(
-        max=1,
         annotations_from=gff_data,
         tags=args.attributes,
         gff_defaults=sgRNA_defaults,
