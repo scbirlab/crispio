@@ -91,7 +91,7 @@ def _prepare_to_search(args: Namespace) -> Tuple[FastaSequence, GffFile, str, Di
     return fasta_sequence, gff_data, pam_search, sgRNA_defaults
 
 
-@clicommand(message="Mapping sgRNAs with the following parameters")
+@clicommand(message=f"Mapping sgRNAs with the following parameters (crispio v{__version__})")
 def _map(args: Namespace) -> None:
 
     fasta_sequence, gff_data, pam_search, sgRNA_defaults = _prepare_to_search(args)
@@ -114,7 +114,6 @@ def _map(args: Namespace) -> None:
     )
 
     for guide_match in guide_library.as_gff(
-        max=1,
         annotations_from=gff_data,
         tags=args.attributes,
         gff_defaults=sgRNA_defaults,
@@ -124,7 +123,7 @@ def _map(args: Namespace) -> None:
     return None
 
 
-@clicommand(message="Generating sgRNAs with the following parameters")
+@clicommand(message=f"Generating sgRNAs with the following parameters (crispio v{__version__})")
 def _generate(args: Namespace) -> None:
     
     fasta_sequence, gff_data, pam_search, sgRNA_defaults = _prepare_to_search(args)
@@ -148,7 +147,7 @@ def _generate(args: Namespace) -> None:
     return None
 
 
-@clicommand(message="Featurizing sgRNAs with the following parameters")
+@clicommand(message=f"Featurizing sgRNAs with the following parameters (crispio v{__version__})")
 def _featurize(args: Namespace) -> None:
     
     try:
@@ -176,7 +175,7 @@ def _featurize(args: Namespace) -> None:
     return None
 
 
-@clicommand(message="Detecting off-targets with the following parameters")
+@clicommand(message=f"Detecting off-targets with the following parameters (crispio v{__version__})")
 def _offtarget(args: Namespace) -> None:
 
     gff1 = GffFile.from_file(args.input)

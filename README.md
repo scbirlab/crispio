@@ -263,7 +263,7 @@ This code would return:
 {'pam_search': 'NGG', 'guide_seq': 'ATGATCGATCGATCG', 'pam_seq': 'AGG', 'pam_start': 45, 'reverse': False, 'guide_context_up': 'CTTTTTTTTTTAAAAAAAAA', 'guide_context_down': 'AAAAAAAAAACCCCCCCCCC', 'pam_end': 48, 'length': 15, 'guide_start': 30, 'guide_end': 45}
 ```
 
-Check the full API in the [documentation](https://readthedocs.org/crispio).
+Check the full API in the [documentation](https://crispio.readthedocs.io/en/latest/).
 
 ## Issues, bugs, suggestions
 
@@ -271,4 +271,4 @@ Do not hesitate to add to our [issue tracker](https://github.com/scbirlab/crispi
 
 ## Documentation
 
-Check the documentation and full API [here](https://readthedocs.org/crispio).
+Check the documentation and full API [here](https://crispio.readthedocs.io/en/latest/).
