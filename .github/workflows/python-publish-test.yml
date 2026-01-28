@@ -6,11 +6,9 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Upload Python Package
+name: Upload Python Package Test
 
-on:
-  release:
-    types: [published]
+on: [push, workflow_dispatch]
 
 permissions:
   contents: read
@@ -19,9 +17,10 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags')) || (github.event_name == 'workflow_dispatch')
     strategy:
       matrix:
-        python-version: ["3.13"]
+        python-version: ["3.12"]
 
     steps:
     - uses: actions/checkout@v4
@@ -36,7 +35,9 @@ jobs:
     - name: Build package
       run: python -m build --sdist --wheel --outdir dist
     - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
+        repository-url: https://test.pypi.org/legacy/
         user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+        password: ${{ secrets.TEST_PIPI_TOKEN }}
+        verbose: true

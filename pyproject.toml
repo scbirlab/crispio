@@ -1,6 +1,6 @@
 [project]
 name = "crispio"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
   { name="Eachan Johnson", email="eachan.johnson@crick.ac.uk" },
 ]
@@ -25,6 +25,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3 :: Only",
 ]
 
@@ -46,6 +47,10 @@ fit = [
   "pandas",
   "scipy",
   "matplotlib",
+]
+dev = [
+  "pytest",
+  "flake8",
 ]
 
 [project.urls]
