@@ -34,7 +34,7 @@ dependencies = [
   "carabiner-tools>=0.0.4",
   "pyyaml",
   "nemony",
-  "streq",
+  "streq>=0.0.3",
   "tqdm",
 ]
 

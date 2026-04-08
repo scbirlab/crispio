@@ -467,7 +467,7 @@ class GuideLibrary:
             _pam_search = (reverse_complement(pam_search) if reverse 
                            else pam_search)
 
-            with tqdm(find_iupac(_pam_search, genome)) as t:  ## run a progress bar
+            with tqdm(find_iupac(_pam_search, genome, overlapped = True)) as t:  ## run a progress bar
                 
                 for (pam_start, pam_end), pam_seq in t:
 
