@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -euox pipefail
+mkdir -p test/outputs
 
 crispio generate \
     --genome test/inputs/EcoMG1655-NC_000913.3.fasta \
