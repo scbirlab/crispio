@@ -7,6 +7,7 @@ from dataclasses import replace
 from functools import wraps
 from io import TextIOWrapper
 import os
+import signal
 import sys
 
 if TYPE_CHECKING:
@@ -28,6 +29,7 @@ def _allow_broken_pipe(f: Callable) -> Callable:
         try:
             return f(*args, **kwargs)
         except BrokenPipeError:
+
             sys.exit(0)
 
     return _f
@@ -109,19 +111,24 @@ def _map(args: Namespace) -> None:
         f'in {args.genome.name}...',
     )
     gff_data.metadata.write(file=args.output)
+    n_written = 0
+    limit_n_written = args.limit is not None and args.limit > 0
     for seq in fasta_sequences:
         print_err(f'\n  Chromosome: {seq.name} ({len(seq.sequence):,} bp)')
         guide_library = GuideLibrary.from_mapping(
             guide_seq=guide_sequences,
             genome=seq.sequence,
             pam_search=pam_search,
+            limit=args.limit,
         )
         for guide_match in guide_library.as_gff(
             annotations_from=gff_data,
             tags=args.attributes,
             gff_defaults=sgRNA_defaults | {"seqid": seq.name},
-        ):        
-            _allow_broken_pipe(guide_match.write)(file=args.output)
+        ):  
+            if limit_n_written and n_written <= limit_n_written:
+                _allow_broken_pipe(guide_match.write)(file=args.output)
+            n_written +=1
     return None
 
 
@@ -132,6 +139,8 @@ def _generate(args: Namespace) -> None:
     fasta_sequences, gff_data, pam_search, sgRNA_defaults = _prepare_to_search(args)
     gff_data.metadata.write(file=args.output)
 
+    n_written = 0
+    limit_n_written = args.limit is not None and args.limit > 0
     for seq in fasta_sequences:
         print_err(f'\n  Chromosome: {seq.name} ({len(seq.sequence):,} bp)')
         guide_library = GuideLibrary.from_generating(
@@ -139,6 +148,7 @@ def _generate(args: Namespace) -> None:
             min_length=args.min_length,
             genome=seq.sequence,
             pam_search=pam_search,
+            limit=args.limit,
         )
     
         for guide_match in guide_library.as_gff(
@@ -146,8 +156,10 @@ def _generate(args: Namespace) -> None:
             annotations_from=gff_data,
             tags=args.attributes,
             gff_defaults=sgRNA_defaults | {"seqid": seq.name},
-        ):        
-            _allow_broken_pipe(guide_match.write)(file=args.output)
+        ):     
+            if limit_n_written and n_written <= limit_n_written:
+                _allow_broken_pipe(guide_match.write)(file=args.output)
+            n_written += 1
     return None
 
 
@@ -229,6 +241,11 @@ def _offtarget(args: Namespace) -> None:
 
 def main():
 
+    try:
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    except AttributeError:
+        pass
+
     length_max = CLIOption(
         '--max_length', '-l', 
         type=int, 
@@ -300,6 +317,12 @@ def main():
         default=['Name', 'locus_tag', 'old_locus_tag', 'gene', 'gene_biotype'],
         help='Tag to use in attribute field (column 9) of GFF file.',
     )
+    _limit = CLIOption(
+        '--limit', '-n',  
+        type=int, 
+        default=None,
+        help="Number to generate. Default: generate all.",
+    )
     outputs = CLIOption(
         '--output', '-o', 
         type=FileType('w'),
@@ -316,7 +339,8 @@ def main():
             length_min, 
             pam, 
             genome, 
-            annotations, 
+            annotations,
+            _limit,
             attributes, 
             outputs,
         ],
@@ -330,6 +354,7 @@ def main():
             pam, 
             genome, 
             annotations, 
+            _limit,
             attributes, 
             outputs,
         ],

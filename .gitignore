@@ -12,6 +12,7 @@
 .idea
 .vscode
 /test/outputs/
+__pycache__/
 
 # virtualenv/venv directories
 /venv/
