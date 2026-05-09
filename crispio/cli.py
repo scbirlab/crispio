@@ -15,7 +15,7 @@ from carabiner.cliutils import CLIApp, CLICommand, CLIOption, clicommand
 from tqdm.auto import tqdm
 from streq import Circular
 
-from . import __version__
+from . import appname, __version__
 from .crosstalk import _get_mismatches
 from .features import featurize
 from .map import GuideLibrary
@@ -350,8 +350,8 @@ def main():
     )
     
     app = CLIApp(
-        'crispio', 
-        description='Design and analysis of bacterial CRISPRi experiments.',
+        appname, 
+        description="Design and analysis CRISPR guides.",
         version=__version__,
         commands=[
             generate, 
