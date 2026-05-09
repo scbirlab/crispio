@@ -135,6 +135,7 @@ def _map(args: Namespace) -> None:
 @clicommand(message=f"Generating sgRNAs with the following parameters (crispio v{__version__})")
 def _generate(args: Namespace) -> None:
     from .map import GuideLibrary
+    import io
 
     fasta_sequences, gff_data, pam_search, sgRNA_defaults = _prepare_to_search(args)
     gff_data.metadata.write(file=args.output)

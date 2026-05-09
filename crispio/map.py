@@ -1,6 +1,6 @@
 """Classes for representing guide RNA libraries."""
 
-from typing import Dict, Iterable, Optional, Tuple, Union
+from collections.abc import Iterable, Iterator
 
 from dataclasses import asdict, dataclass, field
 import math
@@ -48,8 +48,8 @@ class GuideMatch:
     pam_seq: str 
     pam_start: int
     reverse: bool
-    guide_context_up: Optional[str] = field(init=False, default=None)
-    guide_context_down: Optional[str] = field(init=False, default=None)
+    guide_context_up: str | None = field(init=False, default=None)
+    guide_context_down: str | None = field(init=False, default=None)
     pam_end: int = field(init=False)
     length: int = field(init=False)
     guide_start: int = field(init=False)
@@ -99,7 +99,7 @@ class GuideMatchCollection:
     guide_seq: str
     pam_search: str
     matches: Iterable[GuideMatch]
-    guide_name: Optional[str] = field(default=None)
+    guide_name: str | None = field(default=None)
 
     def __iter__(self):
         try:
@@ -122,51 +122,60 @@ class GuideMatchCollection:
             return len(self.matches)            
 
     @staticmethod
-    def _from_search(guide_seq: str, 
-                     genome: str,
-                     pam_search: str = "NGG") -> Iterable[Tuple[int, Dict[str, GuideMatch]]]:
+    def _from_search(
+        guide_seq: str, 
+        genome: str,
+        pam_search: str = "NGG"
+    ) -> Iterator[GuideMatch]:
+
+        from streq import Circular
 
         pam_len = len(pam_search)
-        guide_plus_pam = guide_seq + pam_search
+        guide_len = len(guide_seq)
         for reverse in (False, True):
-            this_guide_plus_pam = (
-                reverse_complement(guide_plus_pam) 
-                if reverse else guide_plus_pam
-            )
-            
-            for i, (
-                (guide_pam_start, guide_pam_end), 
-                guide_pam_seq
-            ) in enumerate(find_iupac(this_guide_plus_pam, genome)):
-                
-                if not reverse:
-                    pam_start = guide_pam_end - pam_len
-                    pam_seq = guide_pam_seq[-pam_len:]
-                    _guide_seq = guide_pam_seq[:-pam_len]
+            if reverse:
+                this_guide = reverse_complement(guide_seq)
+                this_pam = reverse_complement(pam_search)
+            else:
+                this_guide = guide_seq
+                this_pam = pam_search
+
+            pos = genome.find(this_guide)
+            if pos == -1:
+                continue
+            while pos != -1:
+                if reverse:
+                    pam_start = pos - pam_len
+                    if not isinstance(genome, Circular) and pam_start < 0:
+                        pos = genome.find(this_guide, pos + 1)
+                        continue
+                    pam_candidate = genome[pam_start : pos]
                 else:
-                    pam_start = guide_pam_start
-                    pam_seq = guide_pam_seq[:pam_len]
-                    _guide_seq = guide_pam_seq[pam_len:]
+                    pam_start = pos + guide_len
+                    pam_candidate = genome[pam_start : pam_start + pam_len]
+                
+                for i, (_, pam_seq) in enumerate(find_iupac(this_pam, pam_candidate)):
+                    gm = GuideMatch(
+                        pam_search=pam_search,
+                        pam_seq=pam_seq, 
+                        guide_seq=guide_seq,
+                        pam_start=pam_start, 
+                        reverse=reverse,
+                    )
 
-                gm = GuideMatch(
-                    pam_search=pam_search,
-                    pam_seq=pam_seq, 
-                    guide_seq=_guide_seq,
-                    pam_start=pam_start, 
-                    reverse=reverse,
-                )
+                    guide_down, guide_up = get_context(
+                        gm.pam_start, 
+                        gm.pam_end,
+                        gm.guide_start, 
+                        gm.guide_end,
+                        genome=genome, 
+                        reverse=reverse,
+                    )
+                    gm.guide_context_down = guide_down
+                    gm.guide_context_up = guide_up
+                    yield gm
 
-                guide_down, guide_up = get_context(
-                    gm.pam_start, 
-                    gm.pam_end,
-                    gm.guide_start, 
-                    gm.guide_end,
-                    genome=genome, 
-                    reverse=reverse,
-                )
-                gm.guide_context_down = guide_down
-                gm.guide_context_up = guide_up
-                yield gm
+                    pos = genome.find(this_guide, pos + 1)
 
     @classmethod
     def from_search(
@@ -174,7 +183,7 @@ class GuideMatchCollection:
         guide_seq: str,
         genome: str,
         pam_search: str = "NGG",
-        guide_name: Optional[str] = None,
+        guide_name: str | None = None,
         in_memory: bool = False
     ):
         
@@ -273,11 +282,11 @@ class GuideLibrary:
 
     def as_gff(
         self, 
-        max_per_collection: Optional[int] = None,
-        annotations_from: Optional[GffFile] = None,
-        tags: Optional[Iterable[str]] = None,
-        gff_defaults: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Iterable[GffLine]:
+        max_per_collection: int | None = None,
+        annotations_from: GffFile | None = None,
+        tags: Iterable[str] | None = None,
+        gff_defaults: dict[str, str | int] | None = None
+    ) -> Iterator[GffLine]:
         """Convert into a iterable of `bioino.GffLine`s.
 
         Parameters
@@ -481,7 +490,7 @@ class GuideLibrary:
         min_length: int | None = None, 
         pam_search: str = "N",
         limit: int | None = None
-    ) -> Iterable[GuideMatchCollection]:
+    ) -> Iterator[GuideMatchCollection]:
         """
 
         Examples
