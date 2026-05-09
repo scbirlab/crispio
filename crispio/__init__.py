@@ -1,6 +1,7 @@
 from importlib.metadata import version
 
-__version__ = version("crispio")
+appname = "crispio"
+__version__ = version(appname)
 
 from .features import get_features, featurize
 from .map import GuideMatch, GuideMatchCollection, GuideLibrary

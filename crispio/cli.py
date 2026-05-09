@@ -1,24 +1,25 @@
 """Command-line interface for crispio."""
-
-from typing import Callable, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 from argparse import Namespace, FileType
 from dataclasses import replace
 from functools import wraps
 from io import TextIOWrapper
 import os
+import signal
 import sys
 
-from bioino import FastaCollection, FastaSequence, GffFile
+if TYPE_CHECKING:
+    from bioino import FastaCollection, FastaSequence, GffFile
+else:
+    FastaCollection, FastaSequence, GffFile = Any, Any, Any
 from carabiner import print_err
 from carabiner.cliutils import CLIApp, CLICommand, CLIOption, clicommand
 from tqdm.auto import tqdm
-from streq import Circular
 
-from . import __version__
-from .crosstalk import _get_mismatches
-from .features import featurize
-from .map import GuideLibrary
+from . import appname, __version__
+
 from .utils import sequences
 
 def _allow_broken_pipe(f: Callable) -> Callable:
@@ -28,6 +29,7 @@ def _allow_broken_pipe(f: Callable) -> Callable:
         try:
             return f(*args, **kwargs)
         except BrokenPipeError:
+
             sys.exit(0)
 
     return _f
@@ -36,65 +38,68 @@ def _allow_broken_pipe(f: Callable) -> Callable:
 def _load_genome_and_gff(
     genome: TextIOWrapper, 
     gff: TextIOWrapper
-) -> Tuple[FastaSequence, GffFile]:
+) -> tuple[FastaSequence, GffFile]:
+    from bioino import FastaCollection, GffFile
+    from streq import Circular
 
-    for fasta_sequence in FastaCollection.from_file(genome).sequences:
-        break
-
-    fasta_sequence = replace(
-        fasta_sequence,
-        sequence=Circular(fasta_sequence.sequence),
-    )
+    fasta_sequences = [
+        replace(
+            s,
+            sequence=Circular(s.sequence),
+        ) for s in FastaCollection.from_file(genome).sequences
+    ]
+    if not fasta_sequences:
+        raise IOError(f"No sequences found in {genome.name}.")
 
     genome_filename = os.path.basename(genome.name)
     gff_filename = os.path.basename(gff.name)
 
     gff_data = GffFile.from_file(gff)
 
-    new_metadata = [
-        ('genome-sequence', 'constrained', [fasta_sequence.name, 1, len(fasta_sequence.sequence)]), 
-        ('genome-description', 'constrained', [fasta_sequence.description]),
+    seq_metadata = [
+        ('genome-sequence', 'constrained', [seq.name, 1, len(seq.sequence)])
+        for seq in fasta_sequences
+    ]
+    for seq in fasta_sequences:
+        seq_metadata.append(
+            ('genome-description', 'constrained', [seq.description])
+        )
+
+    new_metadata = seq_metadata + [
         ('genome-filename', 'constrained', [genome_filename]),
         ('sgRNA-map', 'free', [__package__, genome_filename, gff_filename]),
     ]
     old_metadata = list(gff_data.metadata.data)
-
     gff_data = replace(
         gff_data, 
         lookup=True,
         metadata=old_metadata + new_metadata,
     )
+    return fasta_sequences, gff_data
 
-    return fasta_sequence, gff_data
 
-
-def _prepare_to_search(args: Namespace) -> Tuple[FastaSequence, GffFile, str, Dict[str, Union[str, int]]]:
-
-    fasta_sequence, gff_data = _load_genome_and_gff(
+def _prepare_to_search(args: Namespace) -> tuple[FastaSequence, GffFile, str, dict[str, str | int]]:
+    fasta_sequences, gff_data = _load_genome_and_gff(
         args.genome,
         args.annotations,
     )
-
-    try:
-        pam_search = sequences.pams[args.pam]
-    except KeyError:
-        pam_search = args.pam
-    
+    pam_search = sequences.pams.get(args.pam, args.pam)
     sgRNA_defaults = {
-        "seqid": fasta_sequence.name,
         "source": __package__,
         "feature": 'protospacer',
         "score": '.',
         "phase": '.',
     }
-    
-    return fasta_sequence, gff_data, pam_search, sgRNA_defaults
+    return fasta_sequences, gff_data, pam_search, sgRNA_defaults
 
 
-@clicommand(message=f"Mapping sgRNAs with the following parameters (crispio v{__version__})")
+@clicommand(message=f"Mapping sgRNAs with the following parameters ({appname} v{__version__})")
 def _map(args: Namespace) -> None:
 
-    fasta_sequence, gff_data, pam_search, sgRNA_defaults = _prepare_to_search(args)
+    from bioino import FastaCollection
+    from .map import GuideLibrary
+
+    fasta_sequences, gff_data, pam_search, sgRNA_defaults = _prepare_to_search(args)
 
     guide_sequences = list(FastaCollection.from_file(args.input).sequences)
     n_guide_sequences = len(guide_sequences)
@@ -105,51 +110,64 @@ def _map(args: Namespace) -> None:
         f'PAM {args.pam} ({pam_search})',
         f'in {args.genome.name}...',
     )
-
     gff_data.metadata.write(file=args.output)
-    guide_library = GuideLibrary.from_mapping(
-        guide_seq=guide_sequences,
-        genome=fasta_sequence.sequence,
-        pam_search=pam_search,
-    )
-
-    for guide_match in guide_library.as_gff(
-        annotations_from=gff_data,
-        tags=args.attributes,
-        gff_defaults=sgRNA_defaults,
-    ):        
-        _allow_broken_pipe(guide_match.write)(file=args.output)
-
+    n_written = 0
+    limit_n_written = args.limit is not None and args.limit > 0
+    for seq in fasta_sequences:
+        print_err(f'\n  Chromosome: {seq.name} ({len(seq.sequence):,} bp)')
+        guide_library = GuideLibrary.from_mapping(
+            guide_seq=guide_sequences,
+            genome=seq.sequence,
+            pam_search=pam_search,
+            limit=args.limit,
+        )
+        for guide_match in guide_library.as_gff(
+            annotations_from=gff_data,
+            tags=args.attributes,
+            gff_defaults=sgRNA_defaults | {"seqid": seq.name},
+        ):  
+            if limit_n_written and n_written <= limit_n_written:
+                _allow_broken_pipe(guide_match.write)(file=args.output)
+            n_written +=1
     return None
 
 
 @clicommand(message=f"Generating sgRNAs with the following parameters (crispio v{__version__})")
 def _generate(args: Namespace) -> None:
-    
-    fasta_sequence, gff_data, pam_search, sgRNA_defaults = _prepare_to_search(args)
+    from .map import GuideLibrary
+    import io
 
+    fasta_sequences, gff_data, pam_search, sgRNA_defaults = _prepare_to_search(args)
     gff_data.metadata.write(file=args.output)
-    guide_library = GuideLibrary.from_generating(
-        max_length=args.max_length,
-        min_length=args.min_length,
-        genome=fasta_sequence.sequence,
-        pam_search=pam_search,
-    )
+
+    n_written = 0
+    limit_n_written = args.limit is not None and args.limit > 0
+    for seq in fasta_sequences:
+        print_err(f'\n  Chromosome: {seq.name} ({len(seq.sequence):,} bp)')
+        guide_library = GuideLibrary.from_generating(
+            max_length=args.max_length,
+            min_length=args.min_length,
+            genome=seq.sequence,
+            pam_search=pam_search,
+            limit=args.limit,
+        )
     
-    for guide_match in guide_library.as_gff(
-        max=1,
-        annotations_from=gff_data,
-        tags=args.attributes,
-        gff_defaults=sgRNA_defaults,
-    ):        
-        _allow_broken_pipe(guide_match.write)(file=args.output)
-    
+        for guide_match in guide_library.as_gff(
+            max_per_collection=1,
+            annotations_from=gff_data,
+            tags=args.attributes,
+            gff_defaults=sgRNA_defaults | {"seqid": seq.name},
+        ):     
+            if limit_n_written and n_written <= limit_n_written:
+                _allow_broken_pipe(guide_match.write)(file=args.output)
+            n_written += 1
     return None
 
 
 @clicommand(message=f"Featurizing sgRNAs with the following parameters (crispio v{__version__})")
 def _featurize(args: Namespace) -> None:
-    
+    from bioino import GffFile
+    from .features import featurize
     try:
         scaffold = sequences.scaffolds[args.scaffold]
     except KeyError:
@@ -160,7 +178,7 @@ def _featurize(args: Namespace) -> None:
     input_gff = GffFile.from_file(args.input)
     input_gff.metadata.write(file=args.output)
 
-    with tqdm(list(input_gff.lines)) as t:  ## run a progress bar
+    with tqdm(input_gff.lines, desc="Featurizing") as t:  ## run a progress bar
         for gff_line in t:
             t.set_postfix(current=gff_line.attributes["Name"][:40])
             new_features = featurize(
@@ -177,6 +195,8 @@ def _featurize(args: Namespace) -> None:
 
 @clicommand(message=f"Detecting off-targets with the following parameters (crispio v{__version__})")
 def _offtarget(args: Namespace) -> None:
+    from bioino import GffFile
+    from .crosstalk import _get_mismatches
 
     gff1 = GffFile.from_file(args.input)
     gff2 = GffFile.from_file(args.gff2)
@@ -221,6 +241,11 @@ def _offtarget(args: Namespace) -> None:
 
 
 def main():
+
+    try:
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    except AttributeError:
+        pass
 
     length_max = CLIOption(
         '--max_length', '-l', 
@@ -293,6 +318,12 @@ def main():
         default=['Name', 'locus_tag', 'old_locus_tag', 'gene', 'gene_biotype'],
         help='Tag to use in attribute field (column 9) of GFF file.',
     )
+    _limit = CLIOption(
+        '--limit', '-n',  
+        type=int, 
+        default=None,
+        help="Number to generate. Default: generate all.",
+    )
     outputs = CLIOption(
         '--output', '-o', 
         type=FileType('w'),
@@ -309,7 +340,8 @@ def main():
             length_min, 
             pam, 
             genome, 
-            annotations, 
+            annotations,
+            _limit,
             attributes, 
             outputs,
         ],
@@ -323,6 +355,7 @@ def main():
             pam, 
             genome, 
             annotations, 
+            _limit,
             attributes, 
             outputs,
         ],
@@ -350,8 +383,8 @@ def main():
     )
     
     app = CLIApp(
-        'crispio', 
-        description='Design and analysis of bacterial CRISPRi experiments.',
+        appname, 
+        description="Design and analysis CRISPR guides.",
         version=__version__,
         commands=[
             generate, 
