@@ -11,6 +11,7 @@
 /docs/_autosummary
 .idea
 .vscode
+/test/outputs/
 
 # virtualenv/venv directories
 /venv/

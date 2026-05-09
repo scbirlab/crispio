@@ -116,6 +116,90 @@ def featurize(
         If `features` is neither a string nor iterable.
     AttributeError
         If `features` is default but `scaffold` is not provided.
+
+    Examples
+    --------
+    Build a representative GffLine (attributes required by the feature set):
+ 
+    >>> from bioino import GffLine
+    >>> gff_line = GffLine(
+    ...     ['chr1', 'crispio', 'protospacer', 1, 20, '.', '+', '.'],
+    ...     {
+    ...         'guide_sequence':   'ATCGATCGATCGATCGATCG',
+    ...         'pam_sequence':     'CGG',
+    ...         'pam_search':       'NGG',
+    ...         'guide_context_up': 'AAAAAAAAAAAAAAAAAACC',
+    ...         'guide_context_down':'TTTTTTTTTTTTTTTTTTGG',
+    ...         'ann_strand':       '-',
+    ...     },
+    ... )
+ 
+    Single feature by name — returns the raw value (not wrapped in a dict):
+ 
+    >>> from crispio.features import featurize
+    >>> featurize(gff_line, 'guide_gc')
+    '0.500'
+    >>> featurize(gff_line, 'guide_purine')
+    '0.500'
+    >>> featurize(gff_line, 'seed_seq')
+    'GATCG'
+    >>> featurize(gff_line, 'guide_start3')
+    'ATC'
+    >>> featurize(gff_line, 'guide_end3')
+    'TCG'
+    >>> featurize(gff_line, 'pam_gc')
+    '1.000'
+    >>> featurize(gff_line, 'pam_n')
+    'C'
+    >>> featurize(gff_line, 'pam_def')
+    'GG'
+    >>> featurize(gff_line, 'context_up2')
+    'CC'
+    >>> featurize(gff_line, 'context_down2')
+    'TT'
+    >>> featurize(gff_line, 'on_nontemplate_strand')
+    True
+    >>> featurize(gff_line, 'guide_autocorr')
+    '8.223'
+    >>> featurize(gff_line, 'pam_autocorr')
+    '1.500'
+ 
+    List of features — returns a ``feat_``-prefixed dict:
+ 
+    >>> featurize(gff_line, features=['guide_gc', 'seed_seq', 'guide_start3'])
+    {'feat_guide_gc': '0.500', 'feat_seed_seq': 'GATCG', 'feat_guide_start3': 'ATC'}
+ 
+    All features require a scaffold **sequence** (not a name string).
+    Retrieve it from ``crispio.utils.sequences``:
+ 
+    >>> from crispio.utils import sequences
+    >>> scaffold_seq = sequences.scaffolds['Sth1']
+    >>> result = featurize(gff_line, scaffold=scaffold_seq)
+    >>> sorted(result.keys())   # doctest: +NORMALIZE_WHITESPACE
+    ['feat_context_down2', 'feat_context_up2', 'feat_context_up_autocorr',
+     'feat_guide_autocorr', 'feat_guide_end3', 'feat_guide_gc', 'feat_guide_purine',
+     'feat_guide_scaff_corr', 'feat_guide_start3', 'feat_on_nontemplate_strand',
+     'feat_pam_autocorr', 'feat_pam_def', 'feat_pam_gc', 'feat_pam_n',
+     'feat_pam_scaff_corr', 'feat_seed_seq']
+    >>> result['feat_guide_scaff_corr']
+    '9.770'
+    >>> result['feat_pam_scaff_corr']
+    '2.667'
+ 
+    Calling without a scaffold when computing all features raises
+    ``AttributeError``, not ``TypeError``:
+ 
+    >>> featurize(gff_line)
+    Traceback (most recent call last):
+        ...
+    AttributeError: Scaffold must be provided to calculate all features.
+ 
+    Unknown feature name raises ``KeyError``:
+ 
+    >>> featurize(gff_line, 'not_a_feature')
+    Traceback (most recent call last):
+        ...
+    KeyError: 'not_a_feature'
     
     """
     
@@ -142,6 +226,41 @@ def get_context(
     reverse: bool,
     extra_bases: int = 20
 ) -> Tuple[str, str]:
+    """Get surrounding sequence.
+    
+    Examples
+    ========
+    Use a genome with visually distinct regions to make direction clear:
+    ``AAAA|CCCC|GGGG|TTTT|ACGT|TGCA``  (blocks of 4, 24 bp total)
+ 
+    >>> genome = 'AAAA' + 'CCCC' + 'GGGG' + 'TTTT' + 'ACGT' + 'TGCA'
+ 
+    Forward strand — guide at [4:8], PAM at [8:12], context window of 4 nt:
+    upstream context is the 4 nt *before* the guide; downstream is the 4 nt
+    *after* the PAM:
+ 
+    >>> get_context(pam_start=8, pam_end=12,
+    ...             guide_start=4, guide_end=8,
+    ...             genome=genome, reverse=False, extra_bases=4)
+    ('TTTT', 'AAAA')
+ 
+    Reverse strand — PAM at [4:8] (on forward), guide at [8:12]; context is
+    reverse-complemented and directions are flipped:
+ 
+    >>> get_context(pam_start=4, pam_end=8,
+    ...             guide_start=8, guide_end=12,
+    ...             genome=genome, reverse=True, extra_bases=4)
+    ('TTTT', 'AAAA')
+ 
+    Context window at the right edge of the genome is truncated gracefully —
+    Python slice semantics give an empty string rather than an error:
+ 
+    >>> get_context(pam_start=20, pam_end=24,
+    ...             guide_start=16, guide_end=20,
+    ...             genome=genome, reverse=False, extra_bases=4)
+    ('', 'TTTT')
+
+    """
     if not reverse:
         guide_down = genome[pam_end:(pam_end + extra_bases)] 
         guide_up = genome[(guide_start - extra_bases):guide_start]

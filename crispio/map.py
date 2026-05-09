@@ -20,7 +20,7 @@ class GuideMatch:
     """Information of guide matching a genome.
 
     Attributes
-    ======--
+    ==========
     pam_search : str
         IUPAC search string for PAM.
     guide_seq : str
@@ -35,11 +35,11 @@ class GuideMatch:
         Length of guide.
 
     Examples
-    ======
+    ========
     >>> GuideMatch(pam_search="NGG", guide_seq="ATCGATCG", pam_seq="CGG", pam_start=10, reverse=False)
-    GuideMatch(pam_search="NGG", guide_seq="ATCGATCG", pam_seq="CGG", pam_start=10, reverse=False, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=2, guide_end=10)
+    GuideMatch(pam_search='NGG', guide_seq='ATCGATCG', pam_seq='CGG', pam_start=10, reverse=False, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=2, guide_end=10)
     >>> GuideMatch(pam_search="NGG", guide_seq="ATCGATCG", pam_seq="CCG", pam_start=10, reverse=True)
-    GuideMatch(pam_search="NGG", guide_seq="CGATCGAT", pam_seq="CGG", pam_start=10, reverse=True, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=13, guide_end=21)
+    GuideMatch(pam_search='NGG', guide_seq='CGATCGAT', pam_seq='CGG', pam_start=10, reverse=True, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=13, guide_end=21)
     
     """
 
@@ -89,7 +89,7 @@ class GuideMatchCollection:
     matches.
 
     Attributes
-    ======--
+    ==========
     guide_seq : str
         Guide spacer sequence.
     pam_search : str
@@ -171,12 +171,14 @@ class GuideMatchCollection:
                 yield gm
 
     @classmethod
-    def from_search(cls,
-                    guide_seq: str,
-                    genome: str,
-                    pam_search: str = "NGG",
-                    guide_name: Optional[str] = None,
-                    in_memory: bool = False):
+    def from_search(
+        cls,
+        guide_seq: str,
+        genome: str,
+        pam_search: str = "NGG",
+        guide_name: Optional[str] = None,
+        in_memory: bool = False
+    ):
         
         """Find the location of a guide sequence in a genome.
 
@@ -186,7 +188,7 @@ class GuideMatchCollection:
         The default behavior is to find matches lazily to save memory and time.
 
         Parameters
-        ======--
+        ==========
         guide_seq : str
             The sequence of the guide to be found.
         pam_search : str, optional
@@ -295,19 +297,33 @@ class GuideLibrary:
             (namely columns 1-8), take values from this disctionary.
 
         Yields
-        =======
+        ======
         bioino.GffLine
             Corresponding to a `GuideMatch`.
 
         Examples
         ========
         >>> genome = "ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGGATATATATATATAATATATATATATAATATATATATATA"
-        >>> gl = GuideLibrary.from_generating(genome=genome)
-        >>> for gff in gl.as_gff(gff_defaults=dict(seqid="my_seq", source="here", feature="protospacer")):  # doctest: +NORMALIZE_WHITESPACE
+        >>> lib = GuideLibrary.from_generating(genome=genome)
+        >>> for gff in lib.as_gff(gff_defaults=dict(seqid="my_seq", source="here", feature="protospacer")):  # doctest: +NORMALIZE_WHITESPACE
         ...     print(gff)
         ... 
         my_seq    here    protospacer     23      42      .       +       .       ID=sgr-06a4ba9b;Name=42-united_exodus;guide_context_down=ATATATATATATAATATATA;guide_context_up=ATATATATATATATATATAT;guide_length=20;guide_re_sites=;guide_sequence=ATACCGTTTTTTTAAAAAAA;guide_sequence_hash=a3987295;mnemonic=united_exodus;pam_end=45;pam_replichore=L;pam_search=NGG;pam_sequence=CGG;pam_start=42;source_name=42-united_exodus
-        my_seq    here    protospacer     29      48      .       -       .       ID=sgr-f84d1c6a;Name=25-zigzag_state;guide_context_down=TATATATATATATATATATA;guide_context_up=ATATATATATTATATATATA;guide_length=20;guide_re_sites=;guide_sequence=TATCCGTTTTTTTAAAAAAA;guide_sequence_hash=188c9ee6;mnemonic=zigzag_state;pam_end=28;pam_replichore=R;pam_search=NGG;pam_sequence=CGG;pam_start=25;source_name=25-zigzag_state       
+        my_seq    here    protospacer     29      48      .       -       .       ID=sgr-f84d1c6a;Name=25-zigzag_state;guide_context_down=TATATATATATATATATATA;guide_context_up=ATATATATATTATATATATA;guide_length=20;guide_re_sites=;guide_sequence=TATCCGTTTTTTTAAAAAAA;guide_sequence_hash=188c9ee6;mnemonic=zigzag_state;pam_end=28;pam_replichore=R;pam_search=NGG;pam_sequence=CGG;pam_start=25;source_name=25-zigzag_state
+        
+        The ``seqid`` supplied in ``gff_defaults`` propagates to every output
+        ``GffLine``.  This is the mechanism used by the multi-chromosome CLI path
+        to tag each guide with the chromosome it was found on:
+    
+        >>> genome = ('ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGG'
+        ...           'ATATATATATATAATATATATATATAATATATATATATA')
+        >>> lib = GuideLibrary.from_generating(genome=genome, in_memory=True)
+        >>> defaults = dict(seqid='NC_000913.3', source='crispio',
+        ...                 feature='protospacer', score='.', phase='.')
+        >>> seqids = {line.columns.seqid for line in lib.as_gff(gff_defaults=defaults)}
+        >>> seqids
+        {'NC_000913.3'}
+
         """
 
         genome_length = len(self.genome)
@@ -380,17 +396,20 @@ class GuideLibrary:
                 else:
                     yield guide_matches
 
-        pprint_dict(not_found, 
-                    message=f"Not found: {len(not_found)} guides")
-
+        pprint_dict(
+            not_found, 
+            message=f"Not found: {len(not_found)} guides",
+        )
         return not_found
 
     @classmethod
-    def from_mapping(cls,
-                     guide_seq: Union[str, Iterable[str], FastaSequence, Iterable[FastaSequence]],
-                     genome: str,
-                     pam_search: str = "NGG",
-                     in_memory: bool = False):
+    def from_mapping(
+        cls,
+        guide_seq: Union[str, Iterable[str], FastaSequence, Iterable[FastaSequence]],
+        genome: str,
+        pam_search: str = "NGG",
+        in_memory: bool = False
+    ):
         
         """Map a set of expected guides to a genome.
 
@@ -453,10 +472,37 @@ class GuideLibrary:
                    guide_matches=matches)
     
     @staticmethod
-    def _from_generating(genome: str,
-                         max_length: int = 20,
-                         min_length: Optional[int] = None, 
-                         pam_search: str = "NGG") -> Iterable[GuideMatchCollection]:
+    def _from_generating(
+        genome: str,
+        max_length: int = 20,
+        min_length: Optional[int] = None, 
+        pam_search: str = "N"
+    ) -> Iterable[GuideMatchCollection]:
+        """
+
+        Examples
+        ========
+        After the bug fix in ``_from_generating`` (always store canonical
+        ``pam_search`` in ``GuideMatchCollection``), the collection and its
+        contained ``GuideMatch`` must agree on ``pam_search`` regardless of strand:
+    
+        >>> from crispio.map import GuideLibrary
+        >>> genome = ('ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGG'
+        ...           'ATATATATATATAATATATATATATAATATATATATATA')
+        >>> gl = GuideLibrary.from_generating(genome=genome, in_memory=True)
+        >>> for coll in gl.guide_matches:
+        ...     match = list(coll.matches)[0]
+        ...     assert coll.pam_search == match.pam_search, (
+        ...         f"Inconsistent pam_search on reverse={match.reverse}: "
+        ...         f"collection={coll.pam_search!r} vs match={match.pam_search!r}"
+        ...     )
+    
+        All pam_search values should be the canonical (forward-strand) PAM:
+    
+        >>> pam_searches = {coll.pam_search for coll in gl.guide_matches}
+        >>> pam_searches
+        {'NGG'}
+        """
 
         min_length = min_length or max_length
         found, guides_created = 0, 0

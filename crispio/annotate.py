@@ -39,6 +39,60 @@ def annotate_from_gff(
     =======
     dict
         Guide RNA dictionary updated with GFF annotations.
+
+    Examples
+    ========
+    Set up a minimal single-gene GFF and build its lookup table:
+ 
+    >>> from io import StringIO
+    >>> from bioino import GffFile
+    >>> gff_line = '\\t'.join([
+    ...     'chr1', 'RefSeq', 'gene', '100', '500', '.', '+', '.',
+    ...     'ID=g1;Name=geneA;locus_tag=b0001',
+    ... ])
+    >>> gff = GffFile.from_file(StringIO(gff_line), lookup=True)
+ 
+    Guide PAM midpoint at position 251, inside the gene body (offset from gene
+    start = 251 - 100 = 151):
+ 
+    >>> from crispio.annotate import annotate_from_gff
+    >>> result = annotate_from_gff({'pam_start': 250, 'pam_end': 253}, gff, seqid='chr1')
+    >>> result['ann_Name']
+    'geneA'
+    >>> result['ann_locus_tag']
+    'b0001'
+    >>> result['pam_offset']
+    151
+    >>> result['ann_strand']
+    '+'
+    >>> result['ann_start'], result['ann_end']
+    (100, 500)
+ 
+    Intergenic guide (PAM midpoint 61, upstream of gene start): bioino 0.0.3
+    automatically assigns the ``_up-`` prefix and computes the distance to the
+    nearest feature, so no manual prefix logic is needed in crispio:
+ 
+    >>> result2 = annotate_from_gff({'pam_start': 60, 'pam_end': 63}, gff, seqid='chr1')
+    >>> result2['ann_locus_tag']
+    '_up-geneA'
+    >>> result2['pam_offset']
+    39
+ 
+    Unknown ``seqid`` (e.g. a plasmid not in the GFF) returns the input dict
+    unchanged rather than raising:
+ 
+    >>> result3 = annotate_from_gff({'pam_start': 250, 'pam_end': 253}, gff, seqid='chrX')
+    >>> sorted(result3.keys())
+    ['pam_end', 'pam_start']
+ 
+    Custom tag set — only extract ``Name``:
+ 
+    >>> result4 = annotate_from_gff({'pam_start': 250, 'pam_end': 253}, gff,
+    ...                              seqid='chr1', tags=['Name'])
+    >>> 'ann_Name' in result4
+    True
+    >>> 'ann_locus_tag' in result4
+    False
     
     """
     
