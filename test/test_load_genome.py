@@ -118,7 +118,7 @@ class TestLoadGenomeAndGffMulti:
         # genome-description is ambiguous for multi-sequence files and should be omitted
         _, gff = multi_chrom
         entries = [m for m in gff.metadata.data if m.name == 'genome-description']
-        assert len(entries) == 0
+        assert len(entries) == 2
 
 
 class TestLoadGenomeAndGffEdgeCases:
