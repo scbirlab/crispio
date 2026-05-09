@@ -20,7 +20,7 @@ class GuideMatch:
     """Information of guide matching a genome.
 
     Attributes
-    ----------
+    ======--
     pam_search : str
         IUPAC search string for PAM.
     guide_seq : str
@@ -35,11 +35,11 @@ class GuideMatch:
         Length of guide.
 
     Examples
-    --------
-    >>> GuideMatch(pam_search='NGG', guide_seq='ATCGATCG', pam_seq='CGG', pam_start=10, reverse=False)
-    GuideMatch(pam_search='NGG', guide_seq='ATCGATCG', pam_seq='CGG', pam_start=10, reverse=False, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=2, guide_end=10)
-    >>> GuideMatch(pam_search='NGG', guide_seq='ATCGATCG', pam_seq='CCG', pam_start=10, reverse=True)
-    GuideMatch(pam_search='NGG', guide_seq='CGATCGAT', pam_seq='CGG', pam_start=10, reverse=True, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=13, guide_end=21)
+    ======
+    >>> GuideMatch(pam_search="NGG", guide_seq="ATCGATCG", pam_seq="CGG", pam_start=10, reverse=False)
+    GuideMatch(pam_search="NGG", guide_seq="ATCGATCG", pam_seq="CGG", pam_start=10, reverse=False, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=2, guide_end=10)
+    >>> GuideMatch(pam_search="NGG", guide_seq="ATCGATCG", pam_seq="CCG", pam_start=10, reverse=True)
+    GuideMatch(pam_search="NGG", guide_seq="CGATCGAT", pam_seq="CGG", pam_start=10, reverse=True, guide_context_up=None, guide_context_down=None, pam_end=13, length=8, guide_start=13, guide_end=21)
     
     """
 
@@ -89,7 +89,7 @@ class GuideMatchCollection:
     matches.
 
     Attributes
-    ----------
+    ======--
     guide_seq : str
         Guide spacer sequence.
     pam_search : str
@@ -186,7 +186,7 @@ class GuideMatchCollection:
         The default behavior is to find matches lazily to save memory and time.
 
         Parameters
-        ----------
+        ======--
         guide_seq : str
             The sequence of the guide to be found.
         pam_search : str, optional
@@ -197,17 +197,17 @@ class GuideMatchCollection:
             Name or identifier of guide.
 
         Raises
-        ------
+        ======
         ValueError
             If guide not found in genome with appropriate PAM.
 
         Returns
-        -------
+        =======
         GuideMatches
             A iterator of dictionaries of match information.
 
         Examples
-        --------
+        ========
         >>> gmc = GuideMatchCollection.from_search("TTTTTTTAAAAAAA", "CCGTTTTTTTAAAAAAACGG")
         >>> len(gmc)
         2
@@ -220,7 +220,7 @@ class GuideMatchCollection:
         """
 
         if guide_seq not in genome and reverse_complement(guide_seq) not in genome:
-            raise ValueError(f'{guide_seq} not in genome')
+            raise ValueError(f"{guide_seq} not in genome")
 
         matches = cls._from_search(guide_seq, genome, pam_search)
 
@@ -235,11 +235,10 @@ class GuideMatchCollection:
 
 @dataclass
 class GuideLibrary:
-
     """Library of guides from a genome.
 
     Attributes
-    ----------
+    ==========
     genome : str
         Genome sequence that guides are matched to.
     guide_matches : list of GuideMatchCollection
@@ -282,7 +281,7 @@ class GuideLibrary:
         """Convert into a iterable of `bioino.GffLine`s.
 
         Parameters
-        ----------
+        ==========
         max : int, optional
             Number of `bioino.GffLine`s to return for each `GuideMatchCollection`. Default: return all.
         annotations_from : bioino.GffFile, optional
@@ -294,15 +293,15 @@ class GuideLibrary:
             (namely columns 1-8), take values from this disctionary.
 
         Yields
-        ------
+        =======
         bioino.GffLine
             Corresponding to a `GuideMatch`.
 
         Examples
-        --------
+        ========
         >>> genome = "ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGGATATATATATATAATATATATATATAATATATATATATA"
         >>> gl = GuideLibrary.from_generating(genome=genome)
-        >>> for gff in gl.as_gff(gff_defaults=dict(seqid='my_seq', source='here', feature='protospacer')):  # doctest: +NORMALIZE_WHITESPACE
+        >>> for gff in gl.as_gff(gff_defaults=dict(seqid="my_seq", source="here", feature="protospacer")):  # doctest: +NORMALIZE_WHITESPACE
         ...     print(gff)
         ... 
         my_seq    here    protospacer     23      42      .       +       .       ID=sgr-06a4ba9b;Name=42-united_exodus;guide_context_down=ATATATATATATAATATATA;guide_context_up=ATATATATATATATATATAT;guide_length=20;guide_re_sites=;guide_sequence=ATACCGTTTTTTTAAAAAAA;guide_sequence_hash=a3987295;mnemonic=united_exodus;pam_end=45;pam_replichore=L;pam_search=NGG;pam_sequence=CGG;pam_start=42;source_name=42-united_exodus
@@ -314,44 +313,44 @@ class GuideLibrary:
         gff_defaults = gff_defaults or {}
 
         for guide_match_collection in self:
-
             for i, match in enumerate(guide_match_collection.matches):
-
                 if i >= max:
                     break
-
                 sgrna_info = {
-                    'ID': 'sgr-' + nm_hash((match.guide_seq, match.pam_search, match.pam_start), 8),
-                    'mnemonic': encode((match.guide_seq, match.pam_search, match.pam_start)),
-                    'guide_sequence_hash': nm_hash(match.guide_seq, 8),
-                    'source_name': guide_match_collection.guide_name,
-                    'pam_start': match.pam_start, 
-                    'pam_end': match.pam_end,
-                    'pam_search': match.pam_search, 
-                    'pam_sequence': match.pam_seq,
-                    'pam_replichore': 'R' if ((match.pam_start / genome_length) < 0.5) else 'L',
-                    'strand': ('+' if not match.reverse else '-'),
-                    'start': ((match.guide_start + 1) if (match.guide_start + 1) > 0 
+                    "ID": "sgr-" + nm_hash((match.guide_seq, match.pam_search, match.pam_start), 8),
+                    "mnemonic": encode((match.guide_seq, match.pam_search, match.pam_start)),
+                    "guide_sequence_hash": nm_hash(match.guide_seq, 8),
+                    "source_name": guide_match_collection.guide_name,
+                    "pam_start": match.pam_start, 
+                    "pam_end": match.pam_end,
+                    "pam_search": match.pam_search, 
+                    "pam_sequence": match.pam_seq,
+                    "pam_replichore": "R" if ((match.pam_start / genome_length) < .5) else "L",
+                    "strand": ("+" if not match.reverse else "-"),
+                    "start": ((match.guide_start + 1) if (match.guide_start + 1) > 0 
                             else match.guide_start + 1 + genome_length), 
-                    'end': (match.guide_end if (match.guide_start + 1) > 0 
+                    "end": (match.guide_end if (match.guide_start + 1) > 0 
                             else match.guide_end + genome_length), 
-                    'guide_context_up': match.guide_context_up, 
-                    'guide_context_down': match.guide_context_down,
-                    'guide_length': match.length,
-                    'guide_re_sites': ','.join(which_re_sites(match.guide_seq)),
-                    'guide_sequence': match.guide_seq
+                    "guide_context_up": match.guide_context_up, 
+                    "guide_context_down": match.guide_context_down,
+                    "guide_length": match.length,
+                    "guide_re_sites": ",".join(which_re_sites(match.guide_seq)),
+                    "guide_sequence": match.guide_seq
                 }
-                sgrna_info['Name'] = '{pam_start}-{mnemonic}'.format(**sgrna_info)
+                sgrna_info["Name"] = "{pam_start}-{mnemonic}".format(**sgrna_info)
 
                 if annotations_from is not None:
-
-                    sgrna_info = annotate_from_gff(sgrna_info, 
-                                                   gff_data=annotations_from, 
-                                                   tags=tags)
-                    sgrna_info['Name'] = '{ann_Name}-{pam_start}-{mnemonic}'.format(**sgrna_info)
+                    seqid = gff_defaults.get("seqid", "")
+                    sgrna_info = annotate_from_gff(
+                        sgrna_info, 
+                        gff_data=annotations_from,
+                        seqid=seqid,
+                        tags=tags,
+                    )
+                    sgrna_info["Name"] = "{ann_Name}-{pam_start}-{mnemonic}".format(**sgrna_info)
                 
                 sgrna_info.update(gff_defaults)
-                sgrna_info['source_name'] = sgrna_info['source_name'] or sgrna_info['Name']
+                sgrna_info["source_name"] = sgrna_info["source_name"] or sgrna_info["Name"]
 
                 yield GffLine.from_dict(sgrna_info)
 
@@ -380,7 +379,7 @@ class GuideLibrary:
                     yield guide_matches
 
         pprint_dict(not_found, 
-                    message=f'Not found: {len(not_found)} guides')
+                    message=f"Not found: {len(not_found)} guides")
 
         return not_found
 
@@ -396,7 +395,7 @@ class GuideLibrary:
         The default behavior is to find matches lazily to save memory and time.
         
         Parameters
-        ----------
+        ==========
         guide_seq : str or bioino.FastaSequence or list
             Guides to map.
         genome : str
@@ -407,11 +406,11 @@ class GuideLibrary:
             Whether to instantiate matches in memory. Default: lazy matching.
 
         Returns
-        -------
+        =======
         GuideLibrary
 
         Examples
-        --------
+        ========
         >>> genome = "CCCCCCCCCCCTTTTTTTTTTAAAAAAAAAATGATCGATCGATCGAGGAAAAAAAAAACCCCCCCCCCC"
         >>> guide_seq = ["ATGATCGATCGATCG", "ATGATCGATCGATCGCCC"]
         >>> gl = GuideLibrary.from_mapping(guide_seq=guide_seq, genome=genome) 
@@ -462,7 +461,7 @@ class GuideLibrary:
         
         for reverse in (False, True):
 
-            directionality = 'reverse' if reverse else 'forward'
+            directionality = "reverse" if reverse else "forward"
         
             _pam_search = (reverse_complement(pam_search) if reverse 
                            else pam_search)
@@ -521,7 +520,7 @@ class GuideLibrary:
         The default behavior is to find matches lazily to save memory and time.
 
         Parameters
-        ----------
+        ======--
         genome : str
             Genome sequence to search.
         max_length : int, optional
@@ -534,7 +533,7 @@ class GuideLibrary:
             Whether to instantiate matches in memory. Default: lazy matching.
 
         Examples
-        --------
+        ======
         >>> genome = "ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGGATATATATATATAATATATATATATAATATATATATATA"
         >>> gl = GuideLibrary.from_generating(genome=genome)
         >>> len(gl)
