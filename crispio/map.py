@@ -56,10 +56,8 @@ class GuideMatch:
     guide_end: int = field(init=False)
 
     def __post_init__(self):
-
         self.length = len(self.guide_seq)
         self.pam_end = self.pam_start + len(self.pam_seq)
-
         if not self.reverse:
             self.guide_start = self.pam_start - self.length 
             self.guide_end = self.pam_start 
@@ -70,15 +68,12 @@ class GuideMatch:
             self.guide_seq = reverse_complement(self.guide_seq)
 
     def __len__(self):
-
         return len(self.guide_seq)
 
     def __str__(self):
-
         return self.guide_seq
         
     def as_dict(self):
-
         return asdict(self)
 
 
@@ -107,7 +102,6 @@ class GuideMatchCollection:
     guide_name: Optional[str] = field(default=None)
 
     def __iter__(self):
-
         try:
             for match in self.matches:
                 yield match
@@ -115,14 +109,12 @@ class GuideMatchCollection:
             raise e
 
     def __len__(self):
-
         """Give the number of matches.
         
         If the matches are not yet instantiated, this will instantiate the matches. 
         Depending on the size of the search, it can take memory and time.
         
         """
-
         try:
             return len(self.matches)
         except TypeError:
@@ -135,16 +127,17 @@ class GuideMatchCollection:
                      pam_search: str = "NGG") -> Iterable[Tuple[int, Dict[str, GuideMatch]]]:
 
         pam_len = len(pam_search)
-
         guide_plus_pam = guide_seq + pam_search
-
         for reverse in (False, True):
-
-            this_guide_plus_pam = (reverse_complement(guide_plus_pam) if reverse 
-                                   else guide_plus_pam)
+            this_guide_plus_pam = (
+                reverse_complement(guide_plus_pam) 
+                if reverse else guide_plus_pam
+            )
             
-            for i, ((guide_pam_start, guide_pam_end), 
-                     guide_pam_seq) in enumerate(find_iupac(this_guide_plus_pam, genome)):
+            for i, (
+                (guide_pam_start, guide_pam_end), 
+                guide_pam_seq
+            ) in enumerate(find_iupac(this_guide_plus_pam, genome)):
                 
                 if not reverse:
                     pam_start = guide_pam_end - pam_len
@@ -155,19 +148,24 @@ class GuideMatchCollection:
                     pam_seq = guide_pam_seq[:pam_len]
                     _guide_seq = guide_pam_seq[pam_len:]
 
-                gm = GuideMatch(pam_search=pam_search,
-                                pam_seq=pam_seq, 
-                                guide_seq=_guide_seq,
-                                pam_start=pam_start, 
-                                reverse=reverse)
+                gm = GuideMatch(
+                    pam_search=pam_search,
+                    pam_seq=pam_seq, 
+                    guide_seq=_guide_seq,
+                    pam_start=pam_start, 
+                    reverse=reverse,
+                )
 
-                guide_down, guide_up = get_context(gm.pam_start, gm.pam_end,
-                                                   gm.guide_start, gm.guide_end,
-                                                   genome=genome, 
-                                                   reverse=reverse)
+                guide_down, guide_up = get_context(
+                    gm.pam_start, 
+                    gm.pam_end,
+                    gm.guide_start, 
+                    gm.guide_end,
+                    genome=genome, 
+                    reverse=reverse,
+                )
                 gm.guide_context_down = guide_down
                 gm.guide_context_up = guide_up
-
                 yield gm
 
     @classmethod
@@ -229,10 +227,12 @@ class GuideMatchCollection:
         if in_memory:
             matches = list(matches)
 
-        return cls(pam_search=pam_search, 
-                   guide_seq=guide_seq, 
-                   guide_name=guide_name,
-                   matches=matches)
+        return cls(
+            pam_search=pam_search, 
+            guide_seq=guide_seq, 
+            guide_name=guide_name,
+            matches=matches,
+        )
     
 
 @dataclass
@@ -252,7 +252,6 @@ class GuideLibrary:
     guide_matches: Iterable[GuideMatchCollection]
 
     def __iter__(self):
-        
         try:
             for match in self.guide_matches:
                 yield match
@@ -260,14 +259,12 @@ class GuideLibrary:
             raise e
     
     def __len__(self):
-
         """Give the number of matches.
         
         If the matches are not yet instantiated, this will instantiate the matches. 
         Depending on the size of the search, it can take memory and time.
         
         """
-
         try:
             return len(self.guide_matches)
         except TypeError:
@@ -281,7 +278,6 @@ class GuideLibrary:
         tags: Optional[Iterable[str]] = None,
         gff_defaults: Optional[Dict[str, Union[str, int]]] = None
     ) -> Iterable[GffLine]:
-
         """Convert into a iterable of `bioino.GffLine`s.
 
         Parameters
@@ -325,7 +321,6 @@ class GuideLibrary:
         {'NC_000913.3'}
 
         """
-
         genome_length = len(self.genome)
         max_per_collection = max_per_collection if max_per_collection is not None else math.inf
         gff_defaults = gff_defaults or {}
@@ -369,7 +364,6 @@ class GuideLibrary:
                 
                 sgrna_info.update(gff_defaults)
                 sgrna_info["source_name"] = sgrna_info["source_name"] or sgrna_info["Name"]
-
                 yield GffLine.from_dict(sgrna_info)
 
     @staticmethod
@@ -378,19 +372,19 @@ class GuideLibrary:
                       pam_search: str = "NGG"):
         
         not_found = {}
-
         with tqdm(guide_seq) as t:  ## run a progress bar
-    
             for guide_sequence in t:
-                
-                t.set_postfix(current=guide_sequence.name[:40], 
-                              not_found=len(not_found))
-
+                t.set_postfix(
+                    current=guide_sequence.name[:40], 
+                    not_found=len(not_found),
+                )
                 try:
-                    guide_matches = GuideMatchCollection.from_search(guide_seq=guide_sequence.sequence, 
-                                                                     guide_name=guide_sequence.name,
-                                                                     pam_search=pam_search, 
-                                                                     genome=genome)
+                    guide_matches = GuideMatchCollection.from_search(
+                        guide_seq=guide_sequence.sequence, 
+                        guide_name=guide_sequence.name,
+                        pam_search=pam_search, 
+                        genome=genome,
+                    )
                 except ValueError:
                     not_found[guide_sequence.name] = guide_sequence.sequence
                 else:
@@ -444,32 +438,27 @@ class GuideLibrary:
         """
         
         if isinstance(guide_seq, str):
-
             guide_seq = [guide_seq]
-            
         if isinstance(guide_seq, Iterable):
-            
             new_guide_seq = []
-
             for g in guide_seq:
-
                 if isinstance(g, str):
-
-                    g = FastaSequence(name=g, 
-                                      description='query_spacer', 
-                                      sequence=g)
-                
+                    g = FastaSequence(
+                        name=g, 
+                        description='query_spacer', 
+                        sequence=g,
+                    )
                 new_guide_seq.append(g)
-
             guide_seq = new_guide_seq
-                
         matches = cls._from_mapping(guide_seq, genome, pam_search)
 
         if in_memory:
             matches = list(matches)
         
-        return cls(genome=genome,
-                   guide_matches=matches)
+        return cls(
+            genome=genome,
+            guide_matches=matches,
+        )
     
     @staticmethod
     def _from_generating(
@@ -486,7 +475,6 @@ class GuideLibrary:
         ``pam_search`` in ``GuideMatchCollection``), the collection and its
         contained ``GuideMatch`` must agree on ``pam_search`` regardless of strand:
     
-        >>> from crispio.map import GuideLibrary
         >>> genome = ('ATATATATATATATATATATATATACCGTTTTTTTAAAAAAACGG'
         ...           'ATATATATATATAATATATATATATAATATATATATATA')
         >>> gl = GuideLibrary.from_generating(genome=genome, in_memory=True)
@@ -508,29 +496,18 @@ class GuideLibrary:
         found, guides_created = 0, 0
         
         for reverse in (False, True):
-
             directionality = "reverse" if reverse else "forward"
-        
-            _pam_search = (reverse_complement(pam_search) if reverse 
-                           else pam_search)
-
-            with tqdm(find_iupac(_pam_search, genome, overlapped = True)) as t:  ## run a progress bar
-                
+            _pam_search = reverse_complement(pam_search) if reverse else pam_search
+            with tqdm(find_iupac(_pam_search, genome, overlapped=True)) as t:  ## run a progress bar
                 for (pam_start, pam_end), pam_seq in t:
-
                     found += 1
-
                     for length in range(min_length, max_length + 1):
-
                         guides_created += 1
-                        
                         guide_start = (pam_start - length if not reverse 
                                        else pam_end)
                         guide_end = (pam_start if not reverse else 
                                      pam_end + length)
-
                         guide_seq = genome[guide_start:guide_end]
-                        
                         t.set_postfix(direction=directionality,
                                       at_site=pam_start,
                                       pam_sites_found=found,
@@ -553,17 +530,18 @@ class GuideLibrary:
                             guide_seq=guide_seq, 
                             pam_search=pam_search,  ## store canonical PAM, not RC
                             matches=[gm],
-                        )
-                        
+                        )     
         return guides_created
                         
     @classmethod
-    def from_generating(cls,
-                        genome: str,
-                        max_length: int = 20,
-                        min_length: Optional[int] = None, 
-                        pam_search: str = "NGG",
-                        in_memory: bool = False):
+    def from_generating(
+        cls,
+        genome: str,
+        max_length: int = 20,
+        min_length: Optional[int] = None, 
+        pam_search: str = "NGG",
+        in_memory: bool = False
+    ):
         
         """Find all guides matching a PAM sequence in a given genome.
 
@@ -602,4 +580,7 @@ class GuideLibrary:
         if in_memory:
             matches = list(matches)
 
-        return cls(genome=genome, guide_matches=matches)
+        return cls(
+            genome=genome, 
+            guide_matches=matches,
+        )
