@@ -160,7 +160,7 @@ def _featurize(args: Namespace) -> None:
     input_gff = GffFile.from_file(args.input)
     input_gff.metadata.write(file=args.output)
 
-    with tqdm(list(input_gff.lines)) as t:  ## run a progress bar
+    with tqdm(input_gff.lines, desc="Featurizing") as t:  ## run a progress bar
         for gff_line in t:
             t.set_postfix(current=gff_line.attributes["Name"][:40])
             new_features = featurize(
