@@ -272,11 +272,13 @@ class GuideLibrary:
             self.guide_matches = list(self.guide_matches)
             return len(self.guide_matches)
 
-    def as_gff(self, 
-               max: Optional[int] = None,
-               annotations_from: Optional[GffFile] = None,
-               tags: Optional[Iterable[str]] = None,
-               gff_defaults: Optional[Dict[str, Union[str, int]]] = None) -> Iterable[GffLine]:
+    def as_gff(
+        self, 
+        max_per_collection: Optional[int] = None,
+        annotations_from: Optional[GffFile] = None,
+        tags: Optional[Iterable[str]] = None,
+        gff_defaults: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Iterable[GffLine]:
 
         """Convert into a iterable of `bioino.GffLine`s.
 
@@ -309,12 +311,12 @@ class GuideLibrary:
         """
 
         genome_length = len(self.genome)
-        max = max or math.inf
+        max_per_collection = max_per_collection if max_per_collection is not None else math.inf
         gff_defaults = gff_defaults or {}
 
         for guide_match_collection in self:
             for i, match in enumerate(guide_match_collection.matches):
-                if i >= max:
+                if i >= max_per_collection:
                     break
                 sgrna_info = {
                     "ID": "sgr-" + nm_hash((match.guide_seq, match.pam_search, match.pam_start), 8),
@@ -501,9 +503,11 @@ class GuideLibrary:
                         gm.guide_context_up = guide_up
 
                         # TODO: Actually group by sequence
-                        yield GuideMatchCollection(guide_seq=guide_seq, 
-                                                   pam_search=_pam_search,
-                                                   matches=[gm])
+                        yield GuideMatchCollection(
+                            guide_seq=guide_seq, 
+                            pam_search=pam_search,  ## store canonical PAM, not RC
+                            matches=[gm],
+                        )
                         
         return guides_created
                         
