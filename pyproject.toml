@@ -33,7 +33,7 @@ dependencies = [
   "carabiner-tools>=0.0.5.post3",
   "pyyaml",
   "nemony",
-  "streq>=0.0.3",
+  "streq>=0.0.4",
   "tqdm",
 ]
 
