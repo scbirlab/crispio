@@ -132,6 +132,7 @@ class GuideMatchCollection:
 
         pam_len = len(pam_search)
         guide_len = len(guide_seq)
+        genome_len = len(genome)
         for reverse in (False, True):
             if reverse:
                 this_guide = reverse_complement(guide_seq)
@@ -143,7 +144,7 @@ class GuideMatchCollection:
             pos = genome.find(this_guide)
             if pos == -1:
                 continue
-            while pos != -1:
+            while pos > -1 and pos < genome_len:
                 if reverse:
                     pam_start = pos - pam_len
                     if not isinstance(genome, Circular) and pam_start < 0:
@@ -175,7 +176,7 @@ class GuideMatchCollection:
                     gm.guide_context_up = guide_up
                     yield gm
 
-                    pos = genome.find(this_guide, pos + 1)
+                pos = genome.find(this_guide, pos + 1)
 
     @classmethod
     def from_search(
