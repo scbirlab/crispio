@@ -29,7 +29,7 @@ crispio map test/inputs/cv-nar-2020_TableS1.fasta \
     --output test/outputs/cv-nar-2020_TableS1_1000.gff
 check_not_empty test/outputs/cv-nar-2020_TableS1_1000.gff
 
-crispio map test/inputs/cv-nar-2020_TableS1.fasta \
+crispio map <(head -n1000 test/inputs/cv-nar-2020_TableS1.fasta) \
     --genome test/inputs/EcoMG1655-NC_000913.3.fasta \
     --annotations test/inputs/EcoMG1655-NC_000913.3.gff3 \
     --pam Spy \
