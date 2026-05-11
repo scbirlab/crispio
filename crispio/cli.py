@@ -111,8 +111,6 @@ def _map(args: Namespace) -> None:
         f'in {args.genome.name}...',
     )
     gff_data.metadata.write(file=args.output)
-    n_written = 0
-    limit_n_written = args.limit is not None and args.limit > 0
     for seq in fasta_sequences:
         print_err(f'\n  Chromosome: {seq.name} ({len(seq.sequence):,} bp)')
         guide_library = GuideLibrary.from_mapping(
@@ -125,10 +123,8 @@ def _map(args: Namespace) -> None:
             annotations_from=gff_data,
             tags=args.attributes,
             gff_defaults=sgRNA_defaults | {"seqid": seq.name},
-        ):  
-            if limit_n_written and n_written <= limit_n_written:
-                _allow_broken_pipe(guide_match.write)(file=args.output)
-            n_written +=1
+        ):
+            _allow_broken_pipe(guide_match.write)(file=args.output)
     return None
 
 
@@ -140,8 +136,6 @@ def _generate(args: Namespace) -> None:
     fasta_sequences, gff_data, pam_search, sgRNA_defaults = _prepare_to_search(args)
     gff_data.metadata.write(file=args.output)
 
-    n_written = 0
-    limit_n_written = args.limit is not None and args.limit > 0
     for seq in fasta_sequences:
         print_err(f'\n  Chromosome: {seq.name} ({len(seq.sequence):,} bp)')
         guide_library = GuideLibrary.from_generating(
@@ -157,10 +151,8 @@ def _generate(args: Namespace) -> None:
             annotations_from=gff_data,
             tags=args.attributes,
             gff_defaults=sgRNA_defaults | {"seqid": seq.name},
-        ):     
-            if limit_n_written and n_written <= limit_n_written:
-                _allow_broken_pipe(guide_match.write)(file=args.output)
-            n_written += 1
+        ):
+            _allow_broken_pipe(guide_match.write)(file=args.output)
     return None
 
 
