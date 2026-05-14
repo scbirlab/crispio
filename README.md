@@ -4,6 +4,8 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/crispio)
 ![PyPI](https://img.shields.io/pypi/v/crispio)
 
+<img src="docs/source/_static/logo.svg" width="200">
+
 **Design and annotate bacterial CRISPRi guide RNA libraries from any genome.**
 
 CRISPRi uses a catalytically dead Cas9 to silence genes by blocking transcription. Designing a good library means knowing not just *where* a guide targets, but *how far upstream of the TSS* it lands, which replichore it sits on, whether it shares a seed sequence with another guide, and whether it contains a restriction site that would break your cloning. crispio computes all of this in one pass and outputs annotated GFF3 that loads directly into any genome browser.
